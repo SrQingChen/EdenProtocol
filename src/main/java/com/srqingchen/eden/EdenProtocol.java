@@ -1,0 +1,136 @@
+package com.srqingchen.eden;
+
+import com.mojang.logging.LogUtils;
+import com.srqingchen.eden.command.EdenCommands;
+import com.srqingchen.eden.dimension.DimensionManager;
+import com.srqingchen.eden.item.EdenTooltips;
+import com.srqingchen.eden.network.EdenNetwork;
+import com.srqingchen.eden.registry.EdenAttachments;
+import com.srqingchen.eden.registry.EdenBlockEntities;
+import com.srqingchen.eden.registry.EdenBlocks;
+import com.srqingchen.eden.registry.EdenCreativeTabs;
+import com.srqingchen.eden.registry.EdenDataComponents;
+import com.srqingchen.eden.registry.EdenEffects;
+import com.srqingchen.eden.registry.EdenItems;
+import com.srqingchen.eden.system.AffixSystem;
+import com.srqingchen.eden.system.CrewScaler;
+import com.srqingchen.eden.system.CurseCardSystem;
+import com.srqingchen.eden.system.DragonHunt;
+import com.srqingchen.eden.system.ErosionSystem;
+import com.srqingchen.eden.system.ExtractionClimaxSystem;
+import com.srqingchen.eden.system.FailureRetention;
+import com.srqingchen.eden.system.MarketSystem;
+import com.srqingchen.eden.system.OasisSystem;
+import com.srqingchen.eden.system.PollutionCoreSystem;
+import com.srqingchen.eden.system.RaidGambitSystem;
+import com.srqingchen.eden.system.ReviveSystem;
+import com.srqingchen.eden.system.TriggerCards;
+import com.srqingchen.eden.talent.TalentMechanics;
+import com.srqingchen.eden.talent.TalentSystem;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import org.slf4j.Logger;
+
+/**
+ * 《净土协议 / EDEN PROTOCOL》 main mod class.
+ * <p>Cooperative extraction-raider: teams delve into a taint-polluted world, survive the erosion
+ * system, extract via a return pod, and convert salvage into supply points to advance the shared
+ * "Duststar" (尘星) purification campaign.
+ * <p>Each content class owns its own DeferredRegister; referencing it here forces static content to
+ * load, then we subscribe every register to the mod event bus.
+ */
+@Mod(EdenProtocol.MODID)
+public class EdenProtocol {
+    public static final String MODID = "eden";
+    public static final Logger LOGGER = LogUtils.getLogger();
+
+    public EdenProtocol(IEventBus modEventBus, ModContainer modContainer) {
+        modEventBus.addListener(this::commonSetup);
+        // MOD-bus events
+        modEventBus.addListener(EdenNetwork::registerPayloads);
+
+        // Subscribe DeferredRegisters (referencing each class loads its static registry content).
+        EdenBlocks.BLOCKS.register(modEventBus);
+        EdenBlockEntities.BLOCK_ENTITIES.register(modEventBus);
+        EdenItems.ITEMS.register(modEventBus);
+        EdenDataComponents.DATA_COMPONENTS.register(modEventBus);
+        EdenEffects.MOB_EFFECTS.register(modEventBus);
+        EdenAttachments.ATTACHMENT_TYPES.register(modEventBus);
+        EdenCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+
+        // Game-bus listeners for game (NeoForge) events, wired explicitly via addListener(method refs).
+        // NOTE: do NOT call NeoForge.EVENT_BUS.register(this) here - this class has no @SubscribeEvent
+        // methods, and the bus throws IllegalArgumentException when registering such an object.
+        NeoForge.EVENT_BUS.addListener(EdenCommands::registerCommands);
+        NeoForge.EVENT_BUS.addListener(ErosionSystem::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(ErosionSystem::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(ErosionSystem::onIncomingDamage);   // out-of-combat regen: track last damage
+        NeoForge.EVENT_BUS.addListener(AffixSystem::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(DimensionManager::onPlayerLogin);
+        // World features (§3/§10): oasis ambience, pollution cores (proximity wake + break rewards + guard drops).
+        NeoForge.EVENT_BUS.addListener(OasisSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(PollutionCoreSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(PollutionCoreSystem::onBlockBreak);
+        NeoForge.EVENT_BUS.addListener(PollutionCoreSystem::onLivingDrops);
+        // End expedition apex objective (§2 打龙): polluted dragon bounty + campaign linkage.
+        NeoForge.EVENT_BUS.addListener(DragonHunt::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(DragonHunt::onLivingDrops);
+        // Crew scaling (§17): monsters in a raid world scale with the live crew size.
+        NeoForge.EVENT_BUS.addListener(CrewScaler::onEntityJoinLevel);
+        // Curse-card actives (§19.1/§19.2): ticks run with everyone else; damage/death hooks run HIGH so
+        // ember invulnerability and glass->ember conversion resolve BEFORE the revive system's downed logic.
+        NeoForge.EVENT_BUS.addListener(CurseCardSystem::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(CurseCardSystem::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, CurseCardSystem::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, CurseCardSystem::onDeathFinal);
+        NeoForge.EVENT_BUS.addListener(CurseCardSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(CurseCardSystem::onChangedDimension);
+        NeoForge.EVENT_BUS.addListener(CurseCardSystem::onLogout);
+        // Daily market fluctuation + shortage good (§19.3), locked while a crew is in the raid world.
+        NeoForge.EVENT_BUS.addListener(MarketSystem::onServerTick);
+        // §19.5 gamble items: hunter spawn scheduling + bounty drops, relic challenge feats.
+        NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onLivingDrops);
+        NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onLogout);
+        // Trigger cards (leech / ember / mending / aegis) + remaining talent mechanics (field medic,
+        // pollution resist, jump, slayer, break speed, fall reduction, once-per-raid totems).
+        NeoForge.EVENT_BUS.addListener(TriggerCards::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(TriggerCards::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(TriggerCards::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(TalentMechanics::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(TalentMechanics::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(TalentMechanics::onBreakSpeed);
+        NeoForge.EVENT_BUS.addListener(TalentMechanics::onLivingFall);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, TalentMechanics::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(TalentMechanics::onLogout);
+        // Extraction climax: the life-support field must run BEFORE ReviveSystem, so a registered crew member's
+        // first lethal blow is negated by the pod (energy cost) instead of dropping them into the downed state.
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, ExtractionClimaxSystem::onDeath);
+        NeoForge.EVENT_BUS.addListener(ExtractionClimaxSystem::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(ReviveSystem::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(ReviveSystem::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(ReviveSystem::onEntityInteract);
+        NeoForge.EVENT_BUS.addListener(ReviveSystem::onRespawn);
+        NeoForge.EVENT_BUS.addListener(EdenTooltips::onTooltip);
+        NeoForge.EVENT_BUS.addListener(FailureRetention::onLivingDrops);
+        // Talent system (P2): transient attribute modifiers do not persist, so re-apply them on login/respawn/dimension
+        // change; login also pushes the talent snapshot to the client (drives ClientTalentData + the talent screen).
+        NeoForge.EVENT_BUS.addListener(TalentSystem::onLogin);
+        NeoForge.EVENT_BUS.addListener(TalentSystem::onRespawn);
+        NeoForge.EVENT_BUS.addListener(TalentSystem::onChangedDimension);
+
+        modContainer.registerConfig(ModConfig.Type.COMMON, EdenConfig.SPEC);
+
+        LOGGER.info("[EdenProtocol] initializing (modid={})", MODID);
+    }
+
+    private void commonSetup(FMLCommonSetupEvent event) {
+        LOGGER.info("[EdenProtocol] common setup complete");
+    }
+}

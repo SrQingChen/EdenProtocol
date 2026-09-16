@@ -1,0 +1,44 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": { "type": "minecraft:uniform", "min": 2.0, "max": 4.0 },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "eden:essence",
+          "weight": 26,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1.0, "max": 3.0 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "eden:taint_crystal",
+          "weight": 20,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1.0, "max": 2.0 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "eden:tainted_ore",
+          "weight": 14,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1.0, "max": 2.0 } }
+          ]
+        },
+        { "type": "minecraft:item", "name": "eden:sample_flora", "weight": 8 },
+        { "type": "minecraft:item", "name": "eden:sample_fauna", "weight": 8 },
+        { "type": "minecraft:item", "name": "eden:sample_mineral", "weight": 8 },
+        { "type": "minecraft:item", "name": "eden:salvage_tech", "weight": 6 },
+        { "type": "minecraft:item", "name": "eden:relic_shard", "weight": 4 },
+        { "type": "minecraft:item", "name": "eden:locator", "weight": 3 },
+        { "type": "minecraft:item", "name": "eden:eden_cell", "weight": 3 },
+        { "type": "minecraft:item", "name": "eden:card_pack", "weight": 3 },
+        { "type": "minecraft:item", "name": "eden:salvage_artifact", "weight": 2 },
+        { "type": "minecraft:item", "name": "eden:insurance", "weight": 1 }
+      ]
+    }
+  ]
+}

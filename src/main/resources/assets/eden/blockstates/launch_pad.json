@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "eden:block/launch_pad" }
+  }
+}

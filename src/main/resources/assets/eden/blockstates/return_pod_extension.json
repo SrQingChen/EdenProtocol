@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "eden:block/return_pod_extension" }
+  }
+}

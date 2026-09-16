@@ -1,0 +1,58 @@
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="净土协议 · EDEN PROTOCOL"
+authors="SrQingChen"
+description='''
+末世浊潮蔓延，幸存者退居轨道方舟。玩家组队深潜回被污染的地表搜打撤，
+用带回的物资与样本推进「尘星计划」科技战役，逐步净化世界，最终解锁一方纯净乐土。
+合作搜打撤 × 卡牌构筑 × 全服共享净化战役。
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+# Curios API - required by the card system (eden:card Curios slot).
+[[dependencies.${mod_id}]]
+    modId="curios"
+    type="required"
+    versionRange="[15.0.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+# Sophisticated Core/Backpacks - optional; only used for end-of-raid salvage recovery of backpack contents.
+[[dependencies.${mod_id}]]
+    modId="sophisticatedcore"
+    type="optional"
+    versionRange="[1.5.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="sophisticatedbackpacks"
+    type="optional"
+    versionRange="[3.26.1,)"
+    ordering="NONE"
+    side="BOTH"
+
+# entity_modifier - REQUIRED hard dependency: difficulty profiles (ConfigProfileManager.applyProfile) and the
+# unique polluted-mob drops (samples / taint crystal / locator) are implemented through it.
+[[dependencies.${mod_id}]]
+    modId="entity_modifier"
+    type="required"
+    versionRange="[3.4.0,)"
+    ordering="AFTER"
+    side="BOTH"

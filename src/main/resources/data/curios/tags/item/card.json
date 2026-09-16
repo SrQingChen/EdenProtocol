@@ -1,0 +1,24 @@
+{
+  "replace": false,
+  "values": [
+    "eden:card_swift",
+    "eden:card_vitality",
+    "eden:card_bulwark",
+    "eden:card_edge",
+    "eden:card_fortune",
+    "eden:card_bloodthirst",
+    "eden:card_gale",
+    "eden:card_titan",
+    "eden:card_greed",
+    "eden:card_glass",
+    "eden:card_resonance",
+    "eden:card_purity",
+    "eden:card_fish",
+    "eden:card_ironhide",
+    "eden:card_leech",
+    "eden:card_ember",
+    "eden:card_mending",
+    "eden:card_aegis",
+    "eden:card_dawn"
+  ]
+}

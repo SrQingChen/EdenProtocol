@@ -1,0 +1,40 @@
+{
+  "type": "minecraft:entity",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "conditions": [
+        { "condition": "minecraft:random_chance", "chance": 0.35 }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "eden:essence",
+          "weight": 8
+        },
+        {
+          "type": "minecraft:item",
+          "name": "eden:taint_crystal",
+          "weight": 6,
+          "functions": [
+            { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 1.0, "max": 2.0 } }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "eden:sample_fauna",
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "rolls": 1.0,
+      "conditions": [
+        { "condition": "minecraft:random_chance", "chance": 0.01 }
+      ],
+      "entries": [
+        { "type": "minecraft:item", "name": "eden:card_pack" }
+      ]
+    }
+  ]
+}

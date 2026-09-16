@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+out/
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+# Dev runtime (world saves, logs, options - may contain private data)
+run/
+runs/
+# Local maven publish output
+repo/
+# OS
+Thumbs.db
+.DS_Store
