@@ -1,0 +1,22 @@
+{
+  "name": "eden.book.e.first_run",
+  "category": "eden:start",
+  "icon": "eden:scanner",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.first_run.p1"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "eden:scanner",
+      "title": "eden.book.e.first_run.spot",
+      "text": "eden.book.e.first_run.spot_t"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.first_run.p2"
+    }
+  ]
+}

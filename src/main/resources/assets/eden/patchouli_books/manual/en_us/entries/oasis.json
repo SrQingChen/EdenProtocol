@@ -1,0 +1,16 @@
+{
+  "name": "eden.book.e.oasis",
+  "category": "eden:campaign",
+  "icon": "eden:eden_cell",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.oasis.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.oasis.p2"
+    }
+  ]
+}

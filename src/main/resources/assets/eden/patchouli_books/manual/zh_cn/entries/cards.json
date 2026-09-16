@@ -1,0 +1,22 @@
+{
+  "name": "eden.book.e.cards",
+  "category": "eden:systems",
+  "icon": "eden:card_pack",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.cards.p1"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "eden:card_bloodthirst",
+      "title": "eden.book.e.cards.spot",
+      "text": "eden.book.e.cards.spot_t"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.cards.p2"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "eden.book.e.ecology",
+  "category": "eden:raid",
+  "icon": "eden:spore_sac",
+  "sortnum": 5,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.ecology.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.ecology.p2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.ecology.p3"
+    }
+  ]
+}

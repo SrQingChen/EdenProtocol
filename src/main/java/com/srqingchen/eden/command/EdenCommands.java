@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.srqingchen.eden.EdenConfig;
 import com.srqingchen.eden.attachment.RaidState;
+import com.srqingchen.eden.dimension.ArkHubBuilder;
 import com.srqingchen.eden.dimension.DimensionManager;
 import com.srqingchen.eden.dimension.EdenDimensions;
 import com.srqingchen.eden.network.EdenNetwork;
@@ -222,18 +223,10 @@ public class EdenCommands {
             ctx.getSource().sendFailure(EdenMessages.styled(Type.DANGER, "eden.msg.ark_dim_unavailable"));
             return 0;
         }
-        // Flat ark: resolve the standing surface Y in front of spawn, then lay out the facility strip.
-        int y = ark.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, 3);
-        BlockPos pad = new BlockPos(0, y, 3);
-        int flags = Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS;
-        ark.setBlock(pad, EdenBlocks.LAUNCH_PAD.get().defaultBlockState(), flags);
-        ark.setBlock(pad.east(2), EdenBlocks.SHOP.get().defaultBlockState(), flags);
-        ark.setBlock(pad.east(4), EdenBlocks.RIFT_ALTAR.get().defaultBlockState(), flags);
-        ark.setBlock(pad.west(2), Blocks.CHEST.defaultBlockState(), flags);
-        // Personal lockers + the chronicle wall (campaign panel) flank the pad.
-        ark.setBlock(pad.south(2), EdenBlocks.LOCKER.get().defaultBlockState(), flags);
-        ark.setBlock(pad.south(2).east(2), EdenBlocks.LOCKER.get().defaultBlockState(), flags);
-        ark.setBlock(pad.south(2).west(2), EdenBlocks.CHRONICLE_WALL.get().defaultBlockState(), flags);
+        // Facilities are baked into the station build itself now; the command stays as a manual
+        // re-assert entry point (same idempotent placement path as automatic generation).
+        ArkHubBuilder.ensurePlatform(ark);
+        ArkHubBuilder.placeFacilities(ark);
         ServerPlayer player = ctx.getSource().getPlayer();
         if (player != null && !player.level().dimension().equals(EdenDimensions.ARK)) {
             DimensionManager.enterArk(player);

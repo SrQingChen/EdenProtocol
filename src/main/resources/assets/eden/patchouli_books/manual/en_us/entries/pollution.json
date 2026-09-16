@@ -1,0 +1,16 @@
+{
+  "name": "eden.book.e.pollution",
+  "category": "eden:campaign",
+  "icon": "eden:chronicle_wall",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.pollution.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.pollution.p2"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "eden.book.e.talents",
+  "category": "eden:systems",
+  "icon": "eden:relic_shard",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.talents.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.talents.p2"
+    }
+  ]
+}

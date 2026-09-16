@@ -1,0 +1,20 @@
+{
+  "name": "eden.book.e.paradise",
+  "category": "eden:campaign",
+  "icon": "eden:paradise_gate",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.paradise.p1"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "eden:pollution",
+        "eden:cores",
+        "eden:season"
+      ]
+    }
+  ]
+}

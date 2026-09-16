@@ -92,6 +92,10 @@ dependencies {
     // is guarded by ModList.isLoaded("jecharacters"); falls back to substring search when the mod is absent.
     compileOnly files("libs/jecharacters-26.1.2-neoforge-4.6.4.jar")
 
+    // Patchouli (帕秋莉手册) - OPTIONAL (compileOnly), guarded by ModList.isLoaded("patchouli");
+    // powers the in-game guide book. The book itself is pure datapack JSON (no code needed without it).
+    compileOnly files("libs/patchouli-neoforge-26.1-94.jar")
+
     // entity_modifier - REQUIRED hard dependency (difficulty config profiles + the unique polluted-mob drops:
     // samples / taint crystal / locator). compileOnly here (the modpack provides it in production); declared
     // mandatory in neoforge.mods.toml. Referenced directly via com.entitymodifier.data.ConfigProfileManager.

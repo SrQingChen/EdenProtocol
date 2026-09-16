@@ -1,0 +1,16 @@
+{
+  "name": "eden.book.e.looting",
+  "category": "eden:raid",
+  "icon": "eden:taint_crystal",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.looting.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.looting.p2"
+    }
+  ]
+}

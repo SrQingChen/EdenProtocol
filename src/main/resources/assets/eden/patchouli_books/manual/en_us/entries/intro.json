@@ -1,0 +1,16 @@
+{
+  "name": "eden.book.e.intro",
+  "category": "eden:start",
+  "icon": "eden:shop",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.intro.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.intro.p2"
+    }
+  ]
+}

@@ -1,12 +1,14 @@
 package com.srqingchen.eden.dimension;
 
 import com.srqingchen.eden.EdenProtocol;
+import com.srqingchen.eden.registry.EdenBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.storage.LevelData;
@@ -36,6 +38,8 @@ public final class ArkHubBuilder {
     private static final int RADIUS = 9;
     /** Corner cut: rim cells with |x|+|z| above this are trimmed, turning the square into an octagon. */
     private static final int CUT_SUM = RADIUS + 5;
+    /** Facility row Z: the launch pad / shop / altar strip sits two blocks south of the spawn pad edge. */
+    private static final int FACILITY_Z = 4;
     /** The user's exported ark structure, resolved from the data pack if present. */
     private static final Identifier ARK_TEMPLATE = Identifier.fromNamespaceAndPath(EdenProtocol.MODID, "ark");
 
@@ -45,17 +49,36 @@ public final class ArkHubBuilder {
     public static void ensurePlatform(ServerLevel ark) {
         BlockPos centre = new BlockPos(0, PLATFORM_Y, 0);
         if (tryPlaceUserTemplate(ark, centre)) {
+            placeFacilities(ark);
             return;
         }
-        if (ark.getBlockState(centre).is(Blocks.SEA_LANTERN)) {
-            // Station already asserts the spawn pad - just re-anchor the world spawn.
-            ark.setRespawnData(new LevelData.RespawnData(
-                    GlobalPos.of(EdenDimensions.ARK, centre.above()), 0.0f, 0.0f));
-            return;
+        if (!ark.getBlockState(centre).is(Blocks.SEA_LANTERN)) {
+            buildStation(ark);
+            EdenProtocol.LOGGER.info("[Eden] generated ark orbital station (octagon r={}, deck y={})", RADIUS, PLATFORM_Y);
         }
-        buildStation(ark);
+        // Facilities ride along with the station (idempotent): worlds generated before this hook
+        // also pick them up on the next ark entry - no /eden setup_ark required any more.
+        placeFacilities(ark);
         ark.setRespawnData(new LevelData.RespawnData(GlobalPos.of(EdenDimensions.ARK, centre.above()), 0.0f, 0.0f));
-        EdenProtocol.LOGGER.info("[Eden] generated ark orbital station (octagon r={}, deck y={})", RADIUS, PLATFORM_Y);
+    }
+
+    /**
+     * Lay the facility strip onto whatever structure stands at the origin (code-built station OR the
+     * user's {@code .nbt} ark): the launch pad anchors at (0, ?, 4) resolved from the heightmap, the
+     * shop / rift altar flank it, lockers + chronicle wall line up one row behind. Each placement is
+     * a plain overwrite of the same state, so calling it again is free.
+     */
+    public static void placeFacilities(ServerLevel ark) {
+        int flags = net.minecraft.world.level.block.Block.UPDATE_NEIGHBORS | net.minecraft.world.level.block.Block.UPDATE_CLIENTS;
+        int y = ark.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, FACILITY_Z);
+        BlockPos pad = new BlockPos(0, y, FACILITY_Z);
+        ark.setBlock(pad, EdenBlocks.LAUNCH_PAD.get().defaultBlockState(), flags);
+        ark.setBlock(pad.east(3), EdenBlocks.SHOP.get().defaultBlockState(), flags);
+        ark.setBlock(pad.west(3), EdenBlocks.RIFT_ALTAR.get().defaultBlockState(), flags);
+        BlockPos back = new BlockPos(0, y, FACILITY_Z + 2);
+        ark.setBlock(back, EdenBlocks.CHRONICLE_WALL.get().defaultBlockState(), flags);
+        ark.setBlock(back.east(3), EdenBlocks.LOCKER.get().defaultBlockState(), flags);
+        ark.setBlock(back.west(3), EdenBlocks.LOCKER.get().defaultBlockState(), flags);
     }
 
     /**

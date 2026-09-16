@@ -1,0 +1,16 @@
+{
+  "name": "eden.book.e.season",
+  "category": "eden:systems",
+  "icon": "eden:hunter_beacon_t1",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.season.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.season.p2"
+    }
+  ]
+}

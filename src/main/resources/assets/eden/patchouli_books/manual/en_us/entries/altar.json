@@ -1,0 +1,23 @@
+{
+  "name": "eden.book.e.altar",
+  "category": "eden:systems",
+  "icon": "eden:rift_altar",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.altar.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.altar.p2"
+    },
+    {
+      "type": "patchouli:relations",
+      "entries": [
+        "eden:cards",
+        "eden:ecology"
+      ]
+    }
+  ]
+}

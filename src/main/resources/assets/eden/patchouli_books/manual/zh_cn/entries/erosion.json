@@ -1,0 +1,22 @@
+{
+  "name": "eden.book.e.erosion",
+  "category": "eden:raid",
+  "icon": "eden:purifier",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.erosion.p1"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "eden:purifier",
+      "title": "eden.book.e.erosion.spot",
+      "text": "eden.book.e.erosion.spot_t"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.erosion.p2"
+    }
+  ]
+}

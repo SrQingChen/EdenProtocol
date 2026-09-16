@@ -6,7 +6,7 @@
 > 战役的一步：带回物资与样本、摧毁污染核心、击落浊潮巨龙——直到全服污染度归零，天堂之门在方舟落下，
 > 净土维度向所有人开启。
 
-*Minecraft `26.1.2` · NeoForge · 当前版本 `0.2.1-alpha`（α 开发阶段）*
+*Minecraft `26.1.2` · NeoForge · 当前版本 `0.2.2-alpha`（α 开发阶段）*
 
 ---
 
@@ -54,8 +54,8 @@
 
 1. 安装 **Minecraft 26.1.2 + NeoForge**，把 `eden-<版本>.jar` 与前置放入 `mods/`：
    - **必需**：[Curios](https://modrinth.com/mod/curios)（卡槽）、entity_modifier（难度档案）
-   - **可选**：Sophisticated Backpacks（背包内容回收）、Just Enough Characters（商店拼音搜索）
-2. 进入世界后自动降落方舟轨道站；管理员执行 `/eden setup_ark` 布置发射台、商店、储物柜与编年史墙。
+   - **可选**：Sophisticated Backpacks（背包内容回收）、Just Enough Characters（商店拼音搜索）、[Patchouli](https://modrinth.com/mod/patchouli)（游戏内《远征手册》）
+2. 进入世界后自动降落方舟轨道站——发射台、商店、裂隙祭坛、储物柜与编年史墙已内置在站台结构中，无需任何命令（`/eden setup_ark` 保留为手动重置入口）。
 3. 右键发射台选择难度与目的地，出发。目标是把全服污染度打到 0%。
 4. 默认按键：**R** 职业主动 · **Tab** 卡牌主动 · **J** 天赋星图（均可在控制设置中改键）。
 

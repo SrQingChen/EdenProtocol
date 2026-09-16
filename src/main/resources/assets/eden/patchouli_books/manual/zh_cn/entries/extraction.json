@@ -1,0 +1,20 @@
+{
+  "name": "eden.book.e.extraction",
+  "category": "eden:raid",
+  "icon": "eden:locator",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.extraction.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.extraction.p2"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.extraction.p3"
+    }
+  ]
+}

@@ -101,6 +101,8 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(TipsSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(TipsSystem::onLogin);
         NeoForge.EVENT_BUS.addListener(TipsSystem::onServerStopped);
+        // Patchouli guide book handout (soft dependency): once per world on first join.
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.EdenGuide::onLogin);
         // Event-triggered cinematics (v3): first join + first raid entry (+ season API).
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onLogin);
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onChangedDimension);

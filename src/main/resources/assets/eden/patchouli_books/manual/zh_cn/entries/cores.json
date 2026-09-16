@@ -1,0 +1,16 @@
+{
+  "name": "eden.book.e.cores",
+  "category": "eden:campaign",
+  "icon": "eden:pollution_core",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.cores.p1"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.cores.p2"
+    }
+  ]
+}
