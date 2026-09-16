@@ -296,10 +296,10 @@ public class ReturnPodBlockEntity extends BlockEntity {
         return false;
     }
 
-    /** How many players are currently in this raid dimension - the "n" the crew registers against. */
+    /** How many crew members are currently in this raid dimension (spectators excluded, §17). */
     private int raidCrewCount() {
         if (getLevel() instanceof ServerLevel sl) {
-            return sl.players().size();
+            return com.srqingchen.eden.system.CrewScaler.crewCount(sl);
         }
         return Math.max(1, this.registered.size());
     }
@@ -533,7 +533,7 @@ public class ReturnPodBlockEntity extends BlockEntity {
         for (int i = 0; i < 3; i++) {
             double a = rand.nextDouble() * Math.PI * 2.0;
             double r = 0.8;
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+            level.sendParticles(com.srqingchen.eden.registry.EdenParticles.ENERGY_ARC.get(),
                     c.x + Math.cos(a) * r, c.y - 1.5 + rand.nextDouble() * 3.2, c.z + Math.sin(a) * r,
                     2, 0.05, 0.15, 0.05, 0.02);
         }

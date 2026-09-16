@@ -516,5 +516,8 @@
   "eden.prefix.endgame.tool": "Tide-Ground",
   "eden.prefix.endgame.armor": "Tide-Wrapped",
   "eden.prefix.endgame.block": "Tide-Flooded",
-  "eden.prefix.endgame.food": "Tide-Bloated"
+  "eden.prefix.endgame.food": "Tide-Bloated",
+  "eden.msg.spectate_on": "Spectating %s's expedition. Use /eden spectate to stop and return to the ark.",
+  "eden.msg.spectate_off": "Spectating ended; returned to the ark.",
+  "eden.msg.spectate_not_in_raid": "%s is not inside a raid world right now."
 }

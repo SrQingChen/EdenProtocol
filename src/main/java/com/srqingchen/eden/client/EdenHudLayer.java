@@ -35,18 +35,37 @@ public class EdenHudLayer implements GuiLayer {
             return;
         }
 
-        int x = 8;
-        int y = 8;
+        // §16 GUI 缩放: the whole HUD renders in a virtual coordinate space of (w/s, h/s) under one
+        // pose scale, so every element (bars, text, strip) grows or shrinks together.
+        float scale = (float) com.srqingchen.eden.EdenClientConfig.HUD_SCALE.get().doubleValue();
+        float marginX = com.srqingchen.eden.EdenClientConfig.HUD_MARGIN_X.get();
+        float marginY = com.srqingchen.eden.EdenClientConfig.HUD_MARGIN_Y.get();
+        var pose = g.pose();
+        pose.pushMatrix();
+        pose.scale(scale, scale);
+        float vw = mc.getWindow().getGuiScaledWidth() / scale;
+        float vh = mc.getWindow().getGuiScaledHeight() / scale;
+        try {
+            renderHud(g, mc, vw, vh, marginX, marginY);
+        } finally {
+            pose.popMatrix();
+        }
+    }
 
-        g.text(mc.font, Component.translatable("eden.hud.difficulty", ClientRaidData.difficulty), x, y, 0xFFAAAAAA);
+    private void renderHud(GuiGraphicsExtractor g, Minecraft mc, float width, float height,
+                           float marginX, float marginY) {
+        float x = marginX;
+        float y = marginY;
+
+        g.text(mc.font, Component.translatable("eden.hud.difficulty", ClientRaidData.difficulty), (int) x, (int) y, 0xFFAAAAAA);
 
         int t = Math.max(0, ClientRaidData.timeLeftSeconds);
         String time = String.format("%02d:%02d", t / 60, t % 60);
         int timeColor = t <= 300 ? 0xFFFF5555 : 0xFFFFFFFF;
-        g.text(mc.font, Component.translatable("eden.hud.collapse", time), x, y + 12, timeColor);
+        g.text(mc.font, Component.translatable("eden.hud.collapse", time), (int) x, (int) (y + 12), timeColor);
 
-        int barX = x;
-        int barY = y + 26;
+        int barX = (int) x;
+        int barY = (int) (y + 26);
         float ratio = ClientRaidData.erosionMax > 0
                 ? Math.min(1f, ClientRaidData.erosion / ClientRaidData.erosionMax)
                 : 0f;
@@ -60,8 +79,8 @@ public class EdenHudLayer implements GuiLayer {
                         String.format("%.0f", ClientRaidData.erosion), ClientRaidData.erosionMax, ClientRaidData.erosionLevel),
                 barX, barY + BAR_H + 3, 0xFFDD88FF);
 
-        renderAffixStrip(g, mc);
-        renderExtractPointer(g, mc);
+        renderAffixStrip(g, mc, width, marginX, marginY);
+        renderExtractPointer(g, mc, marginX, marginY, y);
     }
 
     /**
@@ -69,25 +88,24 @@ public class EdenHudLayer implements GuiLayer {
      * marks how many modifiers are still encrypted. Dense fog / whisper only bite once revealed - the
      * strip is the crew's running intel picture.
      */
-    private void renderAffixStrip(GuiGraphicsExtractor g, Minecraft mc) {
+    private void renderAffixStrip(GuiGraphicsExtractor g, Minecraft mc, float width, float marginX, float marginY) {
         if (ClientRaidData.revealedAffixes.isEmpty()) {
             return;
         }
-        int screenW = mc.getWindow().getGuiScaledWidth();
-        int y = 8;
-        g.text(mc.font, Component.translatable("eden.hud.affixes"), screenW - 8 - mc.font.width(
-                Component.translatable("eden.hud.affixes")), y, 0xFFAA66FF);
+        int y = (int) marginY;
+        g.text(mc.font, Component.translatable("eden.hud.affixes"), (int) (width - marginX - mc.font.width(
+                Component.translatable("eden.hud.affixes"))), y, 0xFFAA66FF);
         y += 12;
         for (String id : ClientRaidData.revealedAffixes) {
             Component name = Component.translatable("eden.affix." + id + ".name");
-            g.text(mc.font, name, screenW - 8 - mc.font.width(name), y, 0xFFFF7F7F);
+            g.text(mc.font, name, (int) (width - marginX - mc.font.width(name)), y, 0xFFFF7F7F);
             y += 11;
         }
         // Hidden remainder: the raid still has tricks up its sleeve.
         int hidden = ClientRaidData.hiddenAffixCount;
         if (hidden > 0) {
             Component q = Component.translatable("eden.hud.affixes_hidden", hidden);
-            g.text(mc.font, q, screenW - 8 - mc.font.width(q), y, 0xFF777777);
+            g.text(mc.font, q, (int) (width - marginX - mc.font.width(q)), y, 0xFF777777);
         }
     }
 
@@ -95,7 +113,7 @@ public class EdenHudLayer implements GuiLayer {
      * Pathfinder card pointer (§8 撤离卡): bearing + live distance to the nearest standing
      * extraction point, pinned under the erosion gauge so it reads as part of the raid HUD.
      */
-    private void renderExtractPointer(GuiGraphicsExtractor g, Minecraft mc) {
+    private void renderExtractPointer(GuiGraphicsExtractor g, Minecraft mc, float marginX, float marginY, float hudY) {
         if (!ClientRaidData.hasExtract || mc.player == null) {
             return;
         }
@@ -118,7 +136,7 @@ public class EdenHudLayer implements GuiLayer {
         };
         Component line = Component.translatable("eden.hud.extract_pointer",
                 Component.translatable(dirKey), dist);
-        g.text(mc.font, line, 8, 8 + 26 + 10 + 14, 0xFF7FDFFF);
+        g.text(mc.font, line, (int) marginX, (int) (hudY + 26 + 10 + 14), 0xFF7FDFFF);
     }
 
     /** Erosion gauge colour ramps with the erosion level (calm green -> deep taint purple). */

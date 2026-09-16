@@ -133,10 +133,10 @@ public final class OasisSystem {
             return;
         }
         RandomSource rand = raid.getRandom();
-        // The pillar: visible far away (希望的萤光).
+        // The pillar: visible far away (希望的萤光 - custom sprite motes).
         for (int i = 0; i < 8; i++) {
             double yy = c.getY() + 2 + rand.nextDouble() * 24;
-            raid.sendParticles(ParticleTypes.END_ROD,
+            raid.sendParticles(com.srqingchen.eden.registry.EdenParticles.HOPE_GLOW.get(),
                     c.getX() + 0.5 + (rand.nextDouble() - 0.5) * 1.2, yy, c.getZ() + 0.5 + (rand.nextDouble() - 0.5) * 1.2,
                     1, 0.0, 0.05, 0.0, 0.0);
         }
@@ -144,7 +144,7 @@ public final class OasisSystem {
         for (int i = 0; i < 6; i++) {
             double a = rand.nextDouble() * Math.PI * 2;
             double d = rand.nextDouble() * (OASIS_RADIUS - 2);
-            raid.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+            raid.sendParticles(com.srqingchen.eden.registry.EdenParticles.HOPE_GLOW.get(),
                     c.getX() + 0.5 + Math.cos(a) * d, c.getY() + 1.2, c.getZ() + 0.5 + Math.sin(a) * d,
                     1, 0.2, 0.2, 0.2, 0.0);
         }

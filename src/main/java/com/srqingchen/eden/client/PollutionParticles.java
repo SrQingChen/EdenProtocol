@@ -68,7 +68,12 @@ public final class PollutionParticles {
             double vx = (rand.nextDouble() - 0.5D) * 0.06D * speed;
             double vy = (0.02D + rand.nextDouble() * 0.04D) * speed;
             double vz = (rand.nextDouble() - 0.5D) * 0.06D * speed;
-            level.addParticle(dust, sx, sy, sz, vx, vy, vz);
+            // Difficulty-tinted dust motes plus a share of the custom spore sprite (§16).
+            if (rand.nextFloat() < 0.35f) {
+                level.addParticle(com.srqingchen.eden.registry.EdenParticles.POLLUTION_SPORE.get(), sx, sy, sz, vx, vy, vz);
+            } else {
+                level.addParticle(dust, sx, sy, sz, vx, vy, vz);
+            }
         }
     }
 }

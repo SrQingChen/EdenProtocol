@@ -516,5 +516,8 @@
   "eden.prefix.endgame.tool": "浊潮磨蚀的",
   "eden.prefix.endgame.armor": "浊潮包裹的",
   "eden.prefix.endgame.block": "浊潮淹没的",
-  "eden.prefix.endgame.food": "浊潮泡胀的"
+  "eden.prefix.endgame.food": "浊潮泡胀的",
+  "eden.msg.spectate_on": "观战模式：跟随 %s 的远征视角。/eden spectate 结束观战返回方舟。",
+  "eden.msg.spectate_off": "已结束观战，返回方舟。",
+  "eden.msg.spectate_not_in_raid": "%s 当前不在远征世界中。"
 }

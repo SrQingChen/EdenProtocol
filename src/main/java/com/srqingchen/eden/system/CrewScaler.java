@@ -27,6 +27,17 @@ public final class CrewScaler {
     private static final Identifier HEALTH_ID = Identifier.fromNamespaceAndPath("eden", "crew_scale_health");
     private static final Identifier ATTACK_ID = Identifier.fromNamespaceAndPath("eden", "crew_scale_attack");
 
+    /** Players who count as the raid CREW: everyone in the level EXCEPT spectators (§17 观战不缩放). */
+    public static int crewCount(ServerLevel level) {
+        int n = 0;
+        for (var p : level.players()) {
+            if (!p.isSpectator()) {
+                n++;
+            }
+        }
+        return n;
+    }
+
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (!(event.getEntity() instanceof Mob mob)) {
             return;
@@ -37,7 +48,7 @@ public final class CrewScaler {
         if (!isRaidLevel(level)) {
             return;
         }
-        int crew = level.players().size();
+        int crew = crewCount(level);
         if (crew <= 1) {
             return;   // solo runs keep the entity_modifier profile as-is
         }

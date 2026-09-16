@@ -27,19 +27,26 @@ public class PollutionCoreBlock extends Block {
         return CODEC;
     }
 
-    /** Client-side ambient: a slow purple wisp so the core reads as malignant. */
+    /** Client-side ambient: taint mist coils and purple wisps so the core reads as malignant. */
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (random.nextInt(5) != 0) {
             return;
         }
-        level.addParticle(ParticleTypes.WITCH,
+        level.addParticle(net.minecraft.core.particles.ParticleTypes.WITCH,
                 pos.getX() + 0.5 + (random.nextDouble() - 0.5) * 0.6,
                 pos.getY() + 1.05,
                 pos.getZ() + 0.5 + (random.nextDouble() - 0.5) * 0.6,
                 0.0, 0.03, 0.0);
+        if (random.nextInt(2) == 0) {
+            level.addParticle(com.srqingchen.eden.registry.EdenParticles.TAINT_MIST.get(),
+                    pos.getX() + 0.5 + (random.nextDouble() - 0.5) * 1.6,
+                    pos.getY() + 0.3 + random.nextDouble() * 1.4,
+                    pos.getZ() + 0.5 + (random.nextDouble() - 0.5) * 1.6,
+                    0.0, 0.012, 0.0);
+        }
         if (random.nextInt(3) == 0) {
-            level.addParticle(ParticleTypes.SMOKE,
+            level.addParticle(net.minecraft.core.particles.ParticleTypes.SMOKE,
                     pos.getX() + 0.5 + (random.nextDouble() - 0.5) * 0.8,
                     pos.getY() + 0.4,
                     pos.getZ() + 0.5 + (random.nextDouble() - 0.5) * 0.8,

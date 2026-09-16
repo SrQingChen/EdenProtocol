@@ -61,6 +61,9 @@ public class EdenProtocolClient {
         // Client MOD bus: register the HUD layer.
         modEventBus.addListener(EdenProtocolClient::registerGuiLayers);
 
+        // Client MOD bus: custom particle providers (§16 sprites).
+        modEventBus.addListener(EdenProtocolClient::registerParticles);
+
         // Client MOD bus: register key mappings so they appear in vanilla Options > Controls (rebindable, persisted).
         modEventBus.addListener(EdenKeyMappings::register);
 
@@ -85,5 +88,17 @@ public class EdenProtocolClient {
         event.registerBelowAll(EdenHudLayer.ID, new EdenHudLayer());
         // Screen overlays (erosion vignette / low-health pulse) draw ABOVE everything.
         event.registerAboveAll(EdenOverlayLayer.ID, new EdenOverlayLayer());
+    }
+
+    private static void registerParticles(
+            net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent event) {
+        event.registerSpriteSet(com.srqingchen.eden.registry.EdenParticles.POLLUTION_SPORE.get(),
+                com.srqingchen.eden.client.EdenCustomParticle::spore);
+        event.registerSpriteSet(com.srqingchen.eden.registry.EdenParticles.TAINT_MIST.get(),
+                com.srqingchen.eden.client.EdenCustomParticle::mist);
+        event.registerSpriteSet(com.srqingchen.eden.registry.EdenParticles.ENERGY_ARC.get(),
+                com.srqingchen.eden.client.EdenCustomParticle::arc);
+        event.registerSpriteSet(com.srqingchen.eden.registry.EdenParticles.HOPE_GLOW.get(),
+                com.srqingchen.eden.client.EdenCustomParticle::hope);
     }
 }

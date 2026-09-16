@@ -12,6 +12,7 @@ import com.srqingchen.eden.network.EdenNetwork;
 import com.srqingchen.eden.registry.EdenAttachments;
 import com.srqingchen.eden.registry.EdenBlocks;
 import com.srqingchen.eden.system.RaidService;
+import com.srqingchen.eden.system.RaidWorldFeatures;
 import com.srqingchen.eden.system.SettlementService;
 import com.srqingchen.eden.system.ShopCatalog;
 import com.srqingchen.eden.util.EdenMessages;
@@ -66,8 +67,55 @@ public class EdenCommands {
                                 .then(Commands.argument("count", IntegerArgumentType.integer(1, 16))
                                         .executes(ctx -> buy(ctx, StringArgumentType.getString(ctx, "item"),
                                                 IntegerArgumentType.getInteger(ctx, "count"))))))
-                // One-shot ark outfitting for admins: places launch pad + terminal + storage chest.
-                .then(Commands.literal("setup_ark").requires(EDEN_ADMIN).executes(EdenCommands::setupArk)));
+                // One-shot ark outfitting for admins: places launch pad + terminal + lockers + chronicle wall.
+                .then(Commands.literal("setup_ark").requires(EDEN_ADMIN).executes(EdenCommands::setupArk))
+                // Live spectator mode (§17 实时观战): follow a raider inside the expedition, then return.
+                .then(Commands.literal("spectate")
+                        .executes(ctx -> stopSpectating(ctx))
+                        .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                                .executes(EdenCommands::startSpectating))));
+    }
+
+    /** Remembered pre-spectate game modes, so /eden spectate off restores what the watcher had. */
+    private static final java.util.Map<java.util.UUID, net.minecraft.world.level.GameType> PRIOR_MODES =
+            new java.util.HashMap<>();
+
+    private static int startSpectating(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer watcher = ctx.getSource().getPlayer();
+        if (watcher == null) {
+            ctx.getSource().sendFailure(EdenMessages.styled(Type.WARNING, "eden.msg.need_player"));
+            return 0;
+        }
+        ServerPlayer target = net.minecraft.commands.arguments.EntityArgument.getPlayer(ctx, "player");
+        if (target == watcher) {
+            return 0;
+        }
+        if (!RaidWorldFeatures.isRaidLevel((ServerLevel) target.level())) {
+            ctx.getSource().sendFailure(EdenMessages.styled(Type.WARNING, "eden.msg.spectate_not_in_raid", target.getName()));
+            return 0;
+        }
+        PRIOR_MODES.putIfAbsent(watcher.getUUID(), watcher.gameMode.getGameModeForPlayer());
+        watcher.setGameMode(net.minecraft.world.level.GameType.SPECTATOR);
+        watcher.teleportTo((ServerLevel) target.level(), target.getX(), target.getY() + 2, target.getZ(),
+                java.util.Set.of(), watcher.getYRot(), watcher.getXRot(), true);
+        EdenMessages.send(watcher, Type.INFO, "eden.msg.spectate_on", target.getName());
+        return 1;
+    }
+
+    private static int stopSpectating(CommandContext<CommandSourceStack> ctx) {
+        ServerPlayer watcher = ctx.getSource().getPlayer();
+        if (watcher == null) {
+            return 0;
+        }
+        net.minecraft.world.level.GameType prior = PRIOR_MODES.remove(watcher.getUUID());
+        if (prior != null) {
+            watcher.setGameMode(prior);
+        } else if (watcher.isSpectator()) {
+            watcher.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+        }
+        DimensionManager.enterArk(watcher);
+        EdenMessages.send(watcher, Type.INFO, "eden.msg.spectate_off");
+        return 1;
     }
 
     private static int startRaid(CommandContext<CommandSourceStack> ctx, String difficulty) {

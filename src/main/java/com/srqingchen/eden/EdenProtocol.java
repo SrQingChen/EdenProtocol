@@ -62,6 +62,7 @@ public class EdenProtocol {
         EdenEffects.MOB_EFFECTS.register(modEventBus);
         EdenAttachments.ATTACHMENT_TYPES.register(modEventBus);
         EdenCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
+        com.srqingchen.eden.registry.EdenParticles.PARTICLES.register(modEventBus);
 
         // Game-bus listeners for game (NeoForge) events, wired explicitly via addListener(method refs).
         // NOTE: do NOT call NeoForge.EVENT_BUS.register(this) here - this class has no @SubscribeEvent
@@ -126,6 +127,7 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(TalentSystem::onChangedDimension);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, EdenConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, EdenClientConfig.SPEC);
 
         LOGGER.info("[EdenProtocol] initializing (modid={})", MODID);
     }

@@ -63,7 +63,7 @@ public class RaidService {
         state.raidDim = dimension.equals(EdenDimensions.RAID_NETHER) ? "nether"
                 : dimension.equals(EdenDimensions.RAID_END) ? "end" : "overworld";
         // Solo compensation (§9): entered alone -> settlement +20% (many systems assume a crew).
-        state.soloRun = raid != null && raid.players().size() <= 1;
+        state.soloRun = raid != null && CrewScaler.crewCount(raid) <= 1;
         // Affixes are world-level: a crewmate already inside this raid shares theirs (same world); otherwise
         // this player is opening a fresh expedition (the world was just rebuilt) and rolls 1-3 new affixes.
         state.affixes = inheritOrRollAffixes(server, player, dimension);
