@@ -33,5 +33,13 @@ public class EdenConfig {
             .comment("Failed-raid salvage keep fraction when the player carried an attrition policy (\u635f\u8017\u4fdd\u5355), which is consumed on trigger.")
             .defineInRange("insuredKeepRatio", 0.35, 0.0, 1.0);
 
+    public static final ModConfigSpec.BooleanValue TIPS_ENABLED = BUILDER
+            .comment("Periodic \"did you know\" guidance tips in chat (random body colour; key tips cycle a hue).")
+            .define("tipsEnabled", true);
+
+    public static final ModConfigSpec.IntValue TIPS_INTERVAL_MINUTES = BUILDER
+            .comment("Average minutes between two chat guidance tips (jittered +/-40%% so it never feels metronomic).")
+            .defineInRange("tipsIntervalMinutes", 6, 1, 120);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 }

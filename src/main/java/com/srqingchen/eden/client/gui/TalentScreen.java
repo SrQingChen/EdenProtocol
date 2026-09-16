@@ -18,6 +18,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,12 +27,15 @@ import java.util.Map;
  * The talent / class screen (P3), drawn entirely in code (mirrors {@code ShopScreen}'s 26.1.2 pattern). Six tabs across
  * the top switch which tree is viewed (universal, or one of the five classes - clicking a class tab also makes it the
  * active class). The selected tree is a free, pannable/zoomable canvas (FTB-quest-book style): nodes live on a world
- * grid ({@code world = node.{x,y} * CELL}), mapped to screen by {@code screen = vp + world*zoom - pan}. Drag with the
+ * grid ({@code world = node.{x,y} * CELL}), mapped to screen by {@code screen = vp + world*zoom - pan}. Grid coords may
+ * be NEGATIVE - every tree radiates from its origin at (0,0) (2026-09-16 radial matrix redesign). Drag with the
  * left button to PAN, scroll to ZOOM about the cursor, double-click to re-fit; opening / switching tabs auto-fits the
- * whole tree into the viewport so nothing is ever clipped. A click that did not drag (below {@code DRAG_THRESHOLD})
- * unlocks the node once (the server re-validates tree / prereqs / cost). Everything reads {@link ClientTalentData}.
- * <p>Borders use four thin {@code fill}s on purpose: {@code GuiGraphicsExtractor.outline} takes (x, y, WIDTH, HEIGHT) -
- * not (x1, y1, x2, y2) like {@code fill} - which previously drew a huge offset highlight box.
+ * whole tree into the viewport. A click that did not drag (below {@code DRAG_THRESHOLD}) unlocks the node once (the
+ * server re-validates tree / prereqs / cost).
+ * <p><b>Star nodes</b>: nodes render as STAR SHAPES rasterized in code (scanline polygon fill over thin
+ * {@code fill}s - {@code GuiGraphicsExtractor} has no polygon primitive): SMALL = 4-point spark, MEDIUM = 5-point star,
+ * LARGE = 6-point star with a radial glow halo. Unlocked stars glow, available stars breathe slowly, keystones carry a
+ * gold halo. Hit-testing uses the star's circumscribed circle.
  */
 @OnlyIn(Dist.CLIENT)
 public class TalentScreen extends Screen {
@@ -44,9 +48,11 @@ public class TalentScreen extends Screen {
     private static final int COL_AVAILABLE = 0xFF4C8FD6;
     private static final int COL_POOR = 0xFF8A7A3F;
     private static final int COL_LOCKED = 0xFF4A4A55;
-    private static final int COL_INACTIVE = 0xFF33333D;
+    private static final int COL_INACTIVE = 0xFF3A3A45;
     private static final int COL_LINE_LIT = 0xFF4FBF6F;
     private static final int COL_LINE_DIM = 0xFF33333D;
+    /** Star radius per tier, in world units (multiplied by zoom when drawn). */
+    private static final double R_SMALL = 14, R_MEDIUM = 19, R_LARGE = 25;
 
     private String selectedTree = "";
     private double panX = 0, panY = 0, zoom = 1;
@@ -57,8 +63,8 @@ public class TalentScreen extends Screen {
     private NV hovered = null;
 
     private static final class NV {
-        final TalentNode node; final int cx, cy, box;
-        NV(TalentNode n, int cx, int cy, int box) { this.node = n; this.cx = cx; this.cy = cy; this.box = box; }
+        final TalentNode node; final int cx, cy; final double r;
+        NV(TalentNode n, int cx, int cy, double r) { this.node = n; this.cx = cx; this.cy = cy; this.r = r; }
     }
 
     public TalentScreen() {
@@ -102,32 +108,24 @@ public class TalentScreen extends Screen {
     private int tabX1(int i) { return vpLeft() + i * (vpRight() - vpLeft()) / 6; }
     private int tabX2(int i) { return vpLeft() + (i + 1) * (vpRight() - vpLeft()) / 6; }
 
-    private int treeRows() {
-        int maxY = 0;
-        for (TalentNode n : TalentNodes.ofTree(this.selectedTree)) maxY = Math.max(maxY, n.y());
-        return maxY + 1;
-    }
-
-    private int treeCols() {
-        int maxX = 0;
-        for (TalentNode n : TalentNodes.ofTree(this.selectedTree)) maxX = Math.max(maxX, n.x());
-        return maxX + 1;
-    }
-
     // ---------- pan / zoom ----------
 
     private double sx(double wx) { return vpLeft() + wx * zoom - panX; }
     private double sy(double wy) { return vpTop() + wy * zoom - panY; }
 
-    /** Fit the whole current tree into the viewport (scale to content, then centre it). */
+    /** Fit the whole current tree into the viewport (scale to content, then centre it). Negative-safe. */
     private void fitView() {
-        int cols = Math.max(1, treeCols()), rows = Math.max(1, treeRows());
-        double cw = (cols - 1) * CELL + CELL * 1.7;
-        double ch = (rows - 1) * CELL + CELL * 1.7;
+        double minX = 0, maxX = 0, minY = 0, maxY = 0;
+        for (TalentNode n : TalentNodes.ofTree(this.selectedTree)) {
+            minX = Math.min(minX, n.x()); maxX = Math.max(maxX, n.x());
+            minY = Math.min(minY, n.y()); maxY = Math.max(maxY, n.y());
+        }
+        double cw = (maxX - minX) * CELL + CELL * 1.9;
+        double ch = (maxY - minY) * CELL + CELL * 1.9;
         double vpW = vpRight() - vpLeft(), vpH = vpBottom() - vpTop();
         zoom = clamp(Math.min(vpW / cw, vpH / ch), ZOOM_MIN, ZOOM_MAX);
-        panX = ((cols - 1) * CELL / 2) * zoom - vpW / 2;
-        panY = ((rows - 1) * CELL / 2) * zoom - vpH / 2;
+        panX = ((minX + maxX) * CELL / 2) * zoom - vpW / 2;
+        panY = ((minY + maxY) * CELL / 2) * zoom - vpH / 2;
     }
 
     /** Zoom about a screen point (keeps the world point under the cursor fixed). */
@@ -218,9 +216,9 @@ public class TalentScreen extends Screen {
         this.byId.clear();
         for (TalentNode n : TalentNodes.ofTree(this.selectedTree)) {
             int cx = (int) sx(n.x() * CELL), cy = (int) sy(n.y() * CELL);
-            double f = n.tier() == TalentNode.Tier.LARGE ? 0.66 : n.tier() == TalentNode.Tier.MEDIUM ? 0.54 : 0.44;
-            int box = (int) clamp(CELL * f * zoom, 6, 220);
-            NV nv = new NV(n, cx, cy, box);
+            double r = (n.tier() == TalentNode.Tier.LARGE ? R_LARGE
+                    : n.tier() == TalentNode.Tier.MEDIUM ? R_MEDIUM : R_SMALL) * clamp(zoom, 0.25, 2.5);
+            NV nv = new NV(n, cx, cy, r);
             this.views.add(nv);
             this.byId.put(n.id(), nv);
         }
@@ -240,25 +238,48 @@ public class TalentScreen extends Screen {
             }
         }
 
-        // nodes
+        // star nodes
         boolean act = treeActive(this.selectedTree);
         boolean showName = CELL * zoom >= 34;
         int nameW = (int) (CELL * zoom);
+        double breath = 0.5 + 0.5 * Math.sin((System.currentTimeMillis() % 2400) / 2400.0 * Math.PI * 2);
         this.hovered = null;
         for (NV nv : this.views) {
-            int x1 = nv.cx - nv.box / 2, y1 = nv.cy - nv.box / 2, x2 = x1 + nv.box, y2 = y1 + nv.box;
-            boolean hov = inViewport(mouseX, mouseY) && mouseX >= x1 && mouseX < x2 && mouseY >= y1 && mouseY < y2;
+            int x1 = (int) (nv.cx - nv.r * 1.3), y1 = (int) (nv.cy - nv.r * 1.3);
+            int x2 = (int) (nv.cx + nv.r * 1.3), y2 = (int) (nv.cy + nv.r * 1.3);
+            boolean hov = inViewport(mouseX, mouseY)
+                    && (mouseX - nv.cx) * (mouseX - nv.cx) + (mouseY - nv.cy) * (mouseY - nv.cy) <= nv.r * nv.r * 1.7;
             if (hov) this.hovered = nv;
             if (x2 < vpLeft() || x1 > vpRight() || y2 < vpTop() || y1 > vpBottom()) continue;   // off-view cull
-            if (nv.node.tier() == TalentNode.Tier.LARGE) {
-                g.fillGradient(x1 - 3, y1 - 3, x2 + 3, y2 + 3, 0x55FFD24A, 0x11FFD24A);
-            }
             int st = stateOf(nv.node, this.selectedTree);
-            g.fill(x1, y1, x2, y2, act ? stateColor(st) : COL_INACTIVE);
-            border(g, x1, y1, x2, y2, hov ? 0xFFFFFFFF : st == 3 ? 0xFFD6FFD6 : 0xFF16161E);
+            int col = act ? stateColor(st) : COL_INACTIVE;
+            int pts = nv.node.tier() == TalentNode.Tier.LARGE ? 6
+                    : nv.node.tier() == TalentNode.Tier.MEDIUM ? 5 : 4;
+
+            // keystone halo (gold aura) + unlocked/available glow behind the star
+            if (nv.node.tier() == TalentNode.Tier.LARGE) {
+                g.fillGradient((int) (nv.cx - nv.r * 1.8), (int) (nv.cy - nv.r * 1.8),
+                        (int) (nv.cx + nv.r * 1.8), (int) (nv.cy + nv.r * 1.8), 0x66FFD24A, 0x11FFD24A);
+            }
+            if (st == 3 && act) {
+                star(g, nv.cx, nv.cy, nv.r * 1.45, pts, 0x303FBF5F); // unlocked soft glow
+            } else if (st == 2 && act) {
+                int a = 0x18 + (int) (0x30 * breath);                // available: slow breathing
+                star(g, nv.cx, nv.cy, nv.r * 1.45, pts, (a << 24) | (COL_AVAILABLE & 0xFFFFFF));
+            }
+            star(g, nv.cx, nv.cy, nv.r, pts, col);
+            // bright core sparkle on unlocked stars
+            if (st == 3 && act && nv.r >= 8) {
+                star(g, nv.cx, nv.cy, nv.r * 0.45, pts, 0xFFE8FFE8);
+            }
+            // hover ring
+            if (hov) {
+                ring(g, nv.cx, nv.cy, nv.r * 1.55, 0xFFFFFFFF);
+            }
             if (showName) {
                 String nm = fit(Component.translatable(nv.node.nameKey()).getString(), nameW);
-                g.centeredText(this.font, nm, nv.cx, y2 + 2, !act ? 0xFF5A5A66 : st == 0 ? 0xFF6E6E7A : 0xFFC8C8D2);
+                g.centeredText(this.font, nm, nv.cx, (int) (nv.cy + nv.r + 3),
+                        !act ? 0xFF5A5A66 : st == 0 ? 0xFF6E6E7A : 0xFFC8C8D2);
             }
         }
 
@@ -267,6 +288,61 @@ public class TalentScreen extends Screen {
 
         String hint = Component.translatable("eden.talent.hover_hint").getString();
         g.text(this.font, fit(hint, vpRight() - vpLeft()), vpLeft(), this.height - 13, 0xFF7A7A88);
+    }
+
+    // ---------- star rasterization (scanline polygon fill over 1px fills) ----------
+
+    /**
+     * Draw a star with {@code points} outer tips and an inner radius ratio per point count
+     * (SMALL=4-point spark, MEDIUM=5-point star, LARGE=6-point star).
+     */
+    private static void star(GuiGraphicsExtractor g, double cx, double cy, double r, int points, int color) {
+        int n = points * 2;
+        double[] xs = new double[n], ys = new double[n];
+        double inner = points <= 4 ? 0.38 : points == 5 ? 0.42 : 0.55;
+        for (int i = 0; i < n; i++) {
+            double ang = -Math.PI / 2 + i * Math.PI / points;
+            double rr = (i % 2 == 0) ? r : r * inner;
+            xs[i] = cx + Math.cos(ang) * rr;
+            ys[i] = cy + Math.sin(ang) * rr;
+        }
+        fillPolygon(g, xs, ys, color);
+    }
+
+    /** Even-odd scanline fill of a polygon via 1px {@code fill} spans. Fine for <=60px shapes. */
+    private static void fillPolygon(GuiGraphicsExtractor g, double[] xs, double[] ys, int color) {
+        double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+        for (double v : ys) { minY = Math.min(minY, v); maxY = Math.max(maxY, v); }
+        List<Double> hits = new ArrayList<>();
+        for (int y = (int) Math.floor(minY); y <= (int) Math.ceil(maxY); y++) {
+            double scan = y + 0.5;
+            hits.clear();
+            for (int i = 0; i < xs.length; i++) {
+                int j = (i + 1) % xs.length;
+                double y1 = ys[i], y2 = ys[j];
+                if ((y1 <= scan && y2 > scan) || (y2 <= scan && y1 > scan)) {
+                    double t = (scan - y1) / (y2 - y1);
+                    hits.add(xs[i] + t * (xs[j] - xs[i]));
+                }
+            }
+            if (hits.size() < 2) continue;
+            Collections.sort(hits);
+            for (int k = 0; k + 1 < hits.size(); k += 2) {
+                int x1 = (int) Math.round(hits.get(k)), x2 = (int) Math.round(hits.get(k + 1));
+                if (x2 >= x1) g.fill(x1, y, x2 + 1, y + 1, color);
+            }
+        }
+    }
+
+    /** Thin circle outline (a hover ring), rasterized as short 1px spans. */
+    private static void ring(GuiGraphicsExtractor g, double cx, double cy, double r, int color) {
+        int steps = Math.max(12, (int) (r * 2.5));
+        for (int i = 0; i < steps; i++) {
+            double a1 = i * Math.PI * 2 / steps, a2 = (i + 0.5) * Math.PI * 2 / steps;
+            int x1 = (int) Math.round(cx + Math.cos(a1) * r), y1 = (int) Math.round(cy + Math.sin(a1) * r);
+            int x2 = (int) Math.round(cx + Math.cos(a2) * r), y2 = (int) Math.round(cy + Math.sin(a2) * r);
+            g.fill(Math.min(x1, x2), Math.min(y1, y2), Math.max(x1, x2) + 1, Math.max(y1, y2) + 1, color);
+        }
     }
 
     private void drawDetails(GuiGraphicsExtractor g, int mx, int my) {
@@ -394,8 +470,8 @@ public class TalentScreen extends Screen {
     private void clickNode(double mx, double my) {
         if (!inViewport(mx, my)) return;
         for (NV nv : this.views) {
-            int x1 = nv.cx - nv.box / 2, y1 = nv.cy - nv.box / 2, x2 = x1 + nv.box, y2 = y1 + nv.box;
-            if (mx >= x1 && mx < x2 && my >= y1 && my < y2) {
+            double dx = mx - nv.cx, dy = my - nv.cy;
+            if (dx * dx + dy * dy <= nv.r * nv.r * 1.7) {
                 if (treeActive(this.selectedTree) && stateOf(nv.node, this.selectedTree) != 3) {
                     ClientPacketDistributor.sendToServer(new TalentClickPayload(nv.node.id()));
                 }

@@ -16,18 +16,24 @@ import java.util.Map;
  * map UI (P3) draws and the attribute recompute (P2) reads. Display names/descriptions are lang keys derived from the
  * id ({@link TalentNode#nameKey()} / {@link TalentNode#descKey()}).
  * <p><b>Single-unlock nodes in chains</b>: every node unlocks ONCE (maxRank 1); the "many points" feel comes from MANY
- * small nodes chained left -&gt; right (a small node leading to the next), not from re-clicking one node. Each branch is
- * a progression of small nodes capped by a medium/large keystone.
- * <p>Effect encoding: attribute nodes carry a vanilla attribute registry name in {@code effectId} (e.g.
+ * small nodes chained outward, not from re-clicking one node.
+ * <p><b>Effect encoding</b>: attribute nodes carry a vanilla attribute registry name in {@code effectId} (e.g.
  * {@code "minecraft:max_health"}) plus {@code effectValue} / {@code multiplicative}; passive mechanics use
  * {@code "mech.<key>"} and active skills {@code "skill.<key>"}, both resolved by the class-skill system later.
- * <p>Layout: per-tree grid coords. The universal tree is 6 branches (rows), each a left-&gt;right chain (x = depth);
- * each class tree is 2 lines (main row 0 / sub row 1) of 4 columns converging on a keystone + active.
+ * <p><b>Layout (2026-09-16 radial redesign)</b>: every tree is a MATRIX EXPANDING FROM ITS CENTRE - grid coords may be
+ * negative and radiate around an origin node at (0,0). The universal tree is a six-spoke hexagon (survival N,
+ * mobility NE, gathering SE, resistance S, cooperation SW, adaptation NW) with cross-link bridges on the inner ring;
+ * each class tree is a compass cross (N/E/S/W arms) converging on the keystone + active at the far end. Per-node values
+ * are deliberately SMALL (health +1, speed +3%...): with ~90 nodes the totals stay meaningful while every single click
+ * is cheap.
+ * <p><b>Save compatibility</b>: node ids are the persistence key (TalentData ranks) AND the mech keys systems query
+ * ({@code TalentSystem.hasMech}), so existing ids are never renamed or removed - the redesign only moves coordinates,
+ * lowers values and inserts new nodes.
  */
 public final class TalentNodes {
     private TalentNodes() {}
 
-    /** The universal tree's id (empty string - {@link TalentData} treats "" as the always-active universal tree). */
+    /** The universal tree's id (empty string - {@code TalentData} treats "" as the always-active universal tree). */
     public static final String UNIVERSAL = "";
 
     private static final Map<String, TalentNode> NODES = new LinkedHashMap<>();
@@ -85,103 +91,150 @@ public final class TalentNodes {
         return n;
     }
 
-    // ---------- universal tree: 6 branches (rows), each a left -> right chain ----------
+    // ---------- universal tree: origin + six spokes radiating outward + inner-ring bridges ----------
+    //
+    //        survival(N)      mobility(NE)
+    //   adaptation(NW)  origin    gathering(SE)
+    //     cooperation(SW)  resistance(S)
+    //
+    // Each spoke: small -> small -> small -> medium -> capstone (totem/core are relic-gated LARGE).
+    // Bridges on ring 2 knit adjacent spokes together so the map reads as a matrix, not six lines.
 
     private static void universal() {
         String t = UNIVERSAL;
-        // 生存 survival (row 0): health chain -> armor -> regen -> once-per-raid totem
-        attr("uni_surv_hp", t, Tier.SMALL, 1, 0, 0, "minecraft:max_health", 2f, false);
-        attr("uni_surv_vigor", t, Tier.SMALL, 1, 1, 0, "minecraft:max_health", 2f, false, "uni_surv_hp");
-        attr("uni_surv_armor", t, Tier.SMALL, 1, 2, 0, "minecraft:armor", 1f, false, "uni_surv_vigor");
-        mech("uni_surv_regen", t, Tier.MEDIUM, 2, 3, 0, "out_of_combat_regen", "uni_surv_armor");
-        mech("uni_surv_totem", t, Tier.LARGE, 3, 4, 0, "once_per_raid_totem", "uni_surv_regen");
-        // 机动 mobility (row 1): speed chain -> jump -> fall reduction
-        attr("uni_mob_speed", t, Tier.SMALL, 1, 0, 1, "minecraft:movement_speed", 0.05f, true);
-        attr("uni_mob_agility", t, Tier.SMALL, 1, 1, 1, "minecraft:movement_speed", 0.05f, true, "uni_mob_speed");
-        mech("uni_mob_jump", t, Tier.SMALL, 1, 2, 1, "jump_boost", "uni_mob_agility");
-        mech("uni_mob_fall", t, Tier.MEDIUM, 2, 3, 1, "fall_reduction", "uni_mob_jump");
-        // 采集 gathering (row 2): supply conversion -> luck -> salvage speed
-        mech("uni_gath_supply", t, Tier.SMALL, 1, 0, 2, "supply_conversion_5");
-        attr("uni_gath_haste", t, Tier.SMALL, 1, 1, 2, "minecraft:luck", 2f, false, "uni_gath_supply");
-        mech("uni_gath_salvage", t, Tier.MEDIUM, 2, 2, 2, "salvage_speed", "uni_gath_haste");
-        // 抗性 resistance (row 3): erosion resist -> armor -> pollution resist
-        mech("uni_res_erosion", t, Tier.SMALL, 1, 0, 3, "erosion_resist");
-        attr("uni_res_hardy", t, Tier.SMALL, 1, 1, 3, "minecraft:armor", 1f, false, "uni_res_erosion");
-        mech("uni_res_pollution", t, Tier.MEDIUM, 2, 2, 3, "pollution_resist", "uni_res_hardy");
-        // 协作 cooperation (row 4): revive bonus -> field medic -> shared shield
-        mech("uni_coop_revive", t, Tier.SMALL, 1, 0, 4, "revive_ally_bonus");
-        mech("uni_coop_medic", t, Tier.SMALL, 1, 1, 4, "revive_speed", "uni_coop_revive");
-        mech("uni_coop_shield", t, Tier.MEDIUM, 2, 2, 4, "shared_shield", "uni_coop_medic");
-        // 适配 adaptive (row 5): main-attr scaling -> focus -> adaptive core
-        mech("uni_adapt_main", t, Tier.SMALL, 1, 0, 5, "adaptive_main_attr");
-        mech("uni_adapt_focus", t, Tier.SMALL, 1, 1, 5, "adaptive_focus", "uni_adapt_main");
-        mech("uni_adapt_core", t, Tier.LARGE, 3, 2, 5, "adaptive_core", "uni_adapt_focus");
+        // origin - the heart of the matrix, every ring-1 node grows out of it
+        attr("uni_origin", t, Tier.MEDIUM, 1, 0, 0, "minecraft:max_health", 1f, false);
+
+        // survival (N): health chain -> regen -> once-per-raid totem
+        attr("uni_surv_hp", t, Tier.SMALL, 1, 0, -1, "minecraft:max_health", 1f, false, "uni_origin");
+        attr("uni_surv_vital", t, Tier.SMALL, 1, 0, -2, "minecraft:max_health", 1f, false, "uni_surv_hp");
+        attr("uni_surv_vigor", t, Tier.SMALL, 1, 0, -3, "minecraft:max_health", 1f, false, "uni_surv_vital");
+        mech("uni_surv_regen", t, Tier.MEDIUM, 2, 0, -4, "out_of_combat_regen", "uni_surv_vigor");
+        mech("uni_surv_totem", t, Tier.LARGE, 3, 0, -5, "once_per_raid_totem", "uni_surv_regen");
+
+        // mobility (NE): speed chain -> jump -> fall reduction -> gale capstone
+        attr("uni_mob_speed", t, Tier.SMALL, 1, 1, -1, "minecraft:movement_speed", 0.03f, true, "uni_origin");
+        attr("uni_mob_stride", t, Tier.SMALL, 1, 2, -2, "minecraft:movement_speed", 0.03f, true, "uni_mob_speed");
+        mech("uni_mob_jump", t, Tier.SMALL, 1, 3, -3, "jump_boost", "uni_mob_stride");
+        mech("uni_mob_fall", t, Tier.MEDIUM, 2, 4, -4, "fall_reduction", "uni_mob_jump");
+        attr("uni_mob_gale", t, Tier.MEDIUM, 2, 5, -5, "minecraft:movement_speed", 0.04f, true, "uni_mob_fall");
+
+        // gathering (SE): supply conversion -> luck chain -> salvage speed -> fortune capstone
+        mech("uni_gath_supply", t, Tier.SMALL, 1, 1, 1, "supply_conversion_5", "uni_origin");
+        attr("uni_gath_knowledge", t, Tier.SMALL, 1, 2, 2, "minecraft:luck", 1f, false, "uni_gath_supply");
+        attr("uni_gath_haste", t, Tier.SMALL, 1, 3, 3, "minecraft:luck", 1f, false, "uni_gath_knowledge");
+        mech("uni_gath_salvage", t, Tier.MEDIUM, 2, 4, 4, "salvage_speed", "uni_gath_haste");
+        attr("uni_gath_fortune", t, Tier.MEDIUM, 2, 5, 5, "minecraft:luck", 2f, false, "uni_gath_salvage");
+
+        // resistance (S): erosion resist -> armor chain -> pollution resist -> aegis capstone
+        mech("uni_res_erosion", t, Tier.SMALL, 1, 0, 1, "erosion_resist", "uni_origin");
+        attr("uni_res_scale", t, Tier.SMALL, 1, 0, 2, "minecraft:armor", 1f, false, "uni_res_erosion");
+        attr("uni_res_hardy", t, Tier.SMALL, 1, 0, 3, "minecraft:armor", 1f, false, "uni_res_scale");
+        mech("uni_res_pollution", t, Tier.MEDIUM, 2, 0, 4, "pollution_resist", "uni_res_hardy");
+        attr("uni_res_aegis", t, Tier.MEDIUM, 2, 0, 5, "minecraft:armor", 2f, false, "uni_res_pollution");
+
+        // cooperation (SW): revive chain -> shared shield -> unity capstone
+        mech("uni_coop_revive", t, Tier.SMALL, 1, -1, 1, "revive_ally_bonus", "uni_origin");
+        attr("uni_coop_kinship", t, Tier.SMALL, 1, -2, 2, "minecraft:max_health", 1f, false, "uni_coop_revive");
+        mech("uni_coop_medic", t, Tier.SMALL, 1, -3, 3, "revive_speed", "uni_coop_kinship");
+        mech("uni_coop_shield", t, Tier.MEDIUM, 2, -4, 4, "shared_shield", "uni_coop_medic");
+        attr("uni_coop_unity", t, Tier.MEDIUM, 2, -5, 5, "minecraft:armor", 1f, false, "uni_coop_shield");
+
+        // adaptation (NW): main-attr scaling -> focus -> adaptive core (relic-gated)
+        mech("uni_adapt_main", t, Tier.SMALL, 1, -1, -1, "adaptive_main_attr", "uni_origin");
+        attr("uni_adapt_track", t, Tier.SMALL, 1, -2, -2, "minecraft:movement_speed", 0.02f, true, "uni_adapt_main");
+        mech("uni_adapt_focus", t, Tier.SMALL, 1, -3, -3, "adaptive_focus", "uni_adapt_track");
+        mech("uni_adapt_core", t, Tier.LARGE, 3, -4, -4, "adaptive_core", "uni_adapt_focus");
+        attr("uni_adapt_apex", t, Tier.MEDIUM, 2, -5, -5, "minecraft:attack_damage", 1f, false, "uni_adapt_core");
+
+        // ring-2 bridges: knit adjacent spokes (each hangs off ONE neighbour, so both sides can reach it)
+        attr("uni_lnk_hp_a", t, Tier.SMALL, 1, 1, -2, "minecraft:max_health", 1f, false, "uni_surv_hp");
+        attr("uni_lnk_luck_a", t, Tier.SMALL, 1, 2, 0, "minecraft:luck", 1f, false, "uni_mob_speed");
+        attr("uni_lnk_armor_a", t, Tier.SMALL, 1, 1, 2, "minecraft:armor", 1f, false, "uni_gath_supply");
+        attr("uni_lnk_armor_b", t, Tier.SMALL, 1, -1, 2, "minecraft:armor", 1f, false, "uni_res_erosion");
+        attr("uni_lnk_hp_b", t, Tier.SMALL, 1, -2, 0, "minecraft:max_health", 1f, false, "uni_coop_revive");
+        attr("uni_lnk_luck_b", t, Tier.SMALL, 1, -1, -2, "minecraft:luck", 1f, false, "uni_adapt_main");
     }
 
-    // ---------- class trees: main line (row 0) + sub line (row 1), converging on keystone + active (col 3) ----------
+    // ---------- class trees: origin core + compass arms, keystone west, active far south ----------
 
-    /** 工程 Engineer - main health / sub armor; charge + deploy passives; overload keystone; emergency-charge active. */
+    /** 工程 Engineer - origin + health N / charge E / deploy S / overload W; emergency-charge active. */
     private static void engineer() {
         String t = "engineer";
-        attr("eng_hp", t, Tier.SMALL, 1, 0, 0, "minecraft:max_health", 2f, false);
-        attr("eng_vigor", t, Tier.SMALL, 1, 1, 0, "minecraft:max_health", 2f, false, "eng_hp");
-        mech("eng_charge", t, Tier.MEDIUM, 2, 2, 0, "charge_efficiency_15", "eng_vigor");
-        mech("eng_overload", t, Tier.LARGE, 3, 3, 0, "overload_deploy", "eng_charge", "eng_deploy");
-        attr("eng_armor", t, Tier.SMALL, 1, 0, 1, "minecraft:armor", 1f, false);
-        attr("eng_plating", t, Tier.SMALL, 1, 1, 1, "minecraft:armor", 1f, false, "eng_armor");
-        mech("eng_deploy", t, Tier.MEDIUM, 2, 2, 1, "fast_deploy", "eng_plating");
-        skill("eng_active", t, Tier.LARGE, 3, 3, 1, "engineer_emergency_charge", "eng_overload");
+        attr("eng_origin", t, Tier.MEDIUM, 1, 0, 0, "minecraft:max_health", 1f, false);
+        attr("eng_hp", t, Tier.SMALL, 1, 0, -1, "minecraft:max_health", 1f, false, "eng_origin");
+        attr("eng_vigor", t, Tier.SMALL, 1, 0, -2, "minecraft:max_health", 1f, false, "eng_hp");
+        attr("eng_battery", t, Tier.SMALL, 1, 2, 0, "minecraft:luck", 1f, false, "eng_origin");
+        mech("eng_charge", t, Tier.MEDIUM, 2, 4, 0, "charge_efficiency_15", "eng_battery");
+        attr("eng_armor", t, Tier.SMALL, 1, 0, 1, "minecraft:armor", 1f, false, "eng_origin");
+        attr("eng_plating", t, Tier.SMALL, 1, 0, 2, "minecraft:armor", 1f, false, "eng_armor");
+        mech("eng_deploy", t, Tier.MEDIUM, 2, 0, 3, "fast_deploy", "eng_plating");
+        attr("eng_tools", t, Tier.SMALL, 1, -2, 0, "minecraft:movement_speed", 0.02f, true, "eng_origin");
+        mech("eng_overload", t, Tier.LARGE, 3, -4, 0, "overload_deploy", "eng_tools", "eng_charge", "eng_deploy");
+        skill("eng_active", t, Tier.LARGE, 3, 0, 4, "engineer_emergency_charge", "eng_overload");
     }
 
-    /** 勘探 Prospector - main speed / sub luck; scan + jump passives; ore-vision keystone; ore-link active. */
+    /** 勘探 Prospector - origin + speed N / scan E / luck&jump S / ore-vision W; ore-link active. */
     private static void prospector() {
         String t = "prospector";
-        attr("pro_speed", t, Tier.SMALL, 1, 0, 0, "minecraft:movement_speed", 0.05f, true);
-        attr("pro_agility", t, Tier.SMALL, 1, 1, 0, "minecraft:movement_speed", 0.05f, true, "pro_speed");
-        mech("pro_scan", t, Tier.MEDIUM, 2, 2, 0, "scan_enhance", "pro_agility");
-        mech("pro_vision", t, Tier.LARGE, 3, 3, 0, "ore_vision", "pro_scan", "pro_jump");
-        attr("pro_luck", t, Tier.SMALL, 1, 0, 1, "minecraft:luck", 2f, false);
-        attr("pro_fortune", t, Tier.SMALL, 1, 1, 1, "minecraft:luck", 2f, false, "pro_luck");
-        mech("pro_jump", t, Tier.MEDIUM, 2, 2, 1, "jump_boost", "pro_fortune");
-        skill("pro_active", t, Tier.LARGE, 3, 3, 1, "prospector_ore_link", "pro_vision");
+        attr("pro_origin", t, Tier.MEDIUM, 1, 0, 0, "minecraft:movement_speed", 0.02f, true);
+        attr("pro_speed", t, Tier.SMALL, 1, 0, -1, "minecraft:movement_speed", 0.03f, true, "pro_origin");
+        attr("pro_agility", t, Tier.SMALL, 1, 0, -2, "minecraft:movement_speed", 0.03f, true, "pro_speed");
+        attr("pro_sense", t, Tier.SMALL, 1, 2, 0, "minecraft:luck", 1f, false, "pro_origin");
+        mech("pro_scan", t, Tier.MEDIUM, 2, 4, 0, "scan_enhance", "pro_sense");
+        attr("pro_luck", t, Tier.SMALL, 1, 0, 1, "minecraft:luck", 1f, false, "pro_origin");
+        attr("pro_fortune", t, Tier.SMALL, 1, 0, 2, "minecraft:luck", 1f, false, "pro_luck");
+        mech("pro_jump", t, Tier.MEDIUM, 2, 0, 3, "jump_boost", "pro_fortune");
+        attr("pro_fit", t, Tier.SMALL, 1, -2, 0, "minecraft:armor", 1f, false, "pro_origin");
+        mech("pro_vision", t, Tier.LARGE, 3, -4, 0, "ore_vision", "pro_fit", "pro_scan", "pro_jump");
+        skill("pro_active", t, Tier.LARGE, 3, 0, 4, "prospector_ore_link", "pro_vision");
     }
 
-    /** 医疗 Medic - main health / sub speed; healing + erosion passives; field-medic keystone; triage active. */
+    /** 医疗 Medic - origin + health N / healing E / speed&erosion S / field-medic W; triage active. */
     private static void medic() {
         String t = "medic";
-        attr("med_hp", t, Tier.SMALL, 1, 0, 0, "minecraft:max_health", 2f, false);
-        attr("med_vigor", t, Tier.SMALL, 1, 1, 0, "minecraft:max_health", 2f, false, "med_hp");
-        mech("med_healbonus", t, Tier.MEDIUM, 2, 2, 0, "healing_bonus_25", "med_vigor");
-        mech("med_field", t, Tier.LARGE, 3, 3, 0, "field_medic", "med_healbonus", "med_erosion");
-        attr("med_speed", t, Tier.SMALL, 1, 0, 1, "minecraft:movement_speed", 0.05f, true);
-        attr("med_alacrity", t, Tier.SMALL, 1, 1, 1, "minecraft:movement_speed", 0.05f, true, "med_speed");
-        mech("med_erosion", t, Tier.MEDIUM, 2, 2, 1, "erosion_resist", "med_alacrity");
-        skill("med_active", t, Tier.LARGE, 3, 3, 1, "medic_triage", "med_field");
+        attr("med_origin", t, Tier.MEDIUM, 1, 0, 0, "minecraft:max_health", 1f, false);
+        attr("med_hp", t, Tier.SMALL, 1, 0, -1, "minecraft:max_health", 1f, false, "med_origin");
+        attr("med_vigor", t, Tier.SMALL, 1, 0, -2, "minecraft:max_health", 1f, false, "med_hp");
+        attr("med_calm", t, Tier.SMALL, 1, 2, 0, "minecraft:armor", 1f, false, "med_origin");
+        mech("med_healbonus", t, Tier.MEDIUM, 2, 4, 0, "healing_bonus_25", "med_calm");
+        attr("med_speed", t, Tier.SMALL, 1, 0, 1, "minecraft:movement_speed", 0.03f, true, "med_origin");
+        attr("med_alacrity", t, Tier.SMALL, 1, 0, 2, "minecraft:movement_speed", 0.03f, true, "med_speed");
+        mech("med_erosion", t, Tier.MEDIUM, 2, 0, 3, "erosion_resist", "med_alacrity");
+        attr("med_smart", t, Tier.SMALL, 1, -2, 0, "minecraft:luck", 1f, false, "med_origin");
+        mech("med_field", t, Tier.LARGE, 3, -4, 0, "field_medic", "med_smart", "med_healbonus", "med_erosion");
+        skill("med_active", t, Tier.LARGE, 3, 0, 4, "medic_triage", "med_field");
     }
 
-    /** 战斗 Vanguard - main attack / sub armor; regen + slayer passives; undying keystone; taunt active. */
+    /** 战斗 Vanguard - origin + attack N / slayer E / armor&regen S / undying W; taunt active. */
     private static void vanguard() {
         String t = "vanguard";
-        attr("van_attack", t, Tier.SMALL, 1, 0, 0, "minecraft:attack_damage", 1f, false);
-        attr("van_might", t, Tier.SMALL, 1, 1, 0, "minecraft:attack_damage", 1f, false, "van_attack");
-        mech("van_regen", t, Tier.MEDIUM, 2, 2, 0, "out_of_combat_regen", "van_might");
-        mech("van_totem", t, Tier.LARGE, 3, 3, 0, "undying_totem", "van_regen", "van_slayer");
-        attr("van_armor", t, Tier.SMALL, 1, 0, 1, "minecraft:armor", 1f, false);
-        attr("van_bulwark", t, Tier.SMALL, 1, 1, 1, "minecraft:armor", 1f, false, "van_armor");
-        mech("van_slayer", t, Tier.MEDIUM, 2, 2, 1, "kill_attack_stack", "van_bulwark");
-        skill("van_active", t, Tier.LARGE, 3, 3, 1, "vanguard_taunt", "van_totem");
+        attr("van_origin", t, Tier.MEDIUM, 1, 0, 0, "minecraft:attack_damage", 1f, false);
+        attr("van_attack", t, Tier.SMALL, 1, 0, -1, "minecraft:attack_damage", 1f, false, "van_origin");
+        attr("van_might", t, Tier.SMALL, 1, 0, -2, "minecraft:attack_damage", 1f, false, "van_attack");
+        attr("van_edge", t, Tier.SMALL, 1, 2, 0, "minecraft:attack_damage", 1f, false, "van_origin");
+        mech("van_slayer", t, Tier.MEDIUM, 2, 4, 0, "kill_attack_stack", "van_edge");
+        attr("van_armor", t, Tier.SMALL, 1, 0, 1, "minecraft:armor", 1f, false, "van_origin");
+        attr("van_bulwark", t, Tier.SMALL, 1, 0, 2, "minecraft:armor", 1f, false, "van_armor");
+        mech("van_regen", t, Tier.MEDIUM, 2, 0, 3, "out_of_combat_regen", "van_bulwark");
+        attr("van_guard", t, Tier.SMALL, 1, -2, 0, "minecraft:max_health", 1f, false, "van_origin");
+        mech("van_totem", t, Tier.LARGE, 3, -4, 0, "undying_totem", "van_guard", "van_regen", "van_slayer");
+        skill("van_active", t, Tier.LARGE, 3, 0, 4, "vanguard_taunt", "van_totem");
     }
 
-    /** 拾荒 Scavenger - main speed / sub health; supply + loot passives; waste-to-wealth keystone; discovery active. */
+    /** 拾荒 Scavenger - origin + speed N / supply E / health&loot S / waste-to-wealth W; discovery active. */
     private static void scavenger() {
         String t = "scavenger";
-        attr("scv_speed", t, Tier.SMALL, 1, 0, 0, "minecraft:movement_speed", 0.05f, true);
-        attr("scv_gust", t, Tier.SMALL, 1, 1, 0, "minecraft:movement_speed", 0.05f, true, "scv_speed");
-        mech("scv_supply", t, Tier.MEDIUM, 2, 2, 0, "supply_conversion_15", "scv_gust");
-        mech("scv_convert", t, Tier.LARGE, 3, 3, 0, "waste_to_wealth", "scv_supply", "scv_loot");
-        attr("scv_hp", t, Tier.SMALL, 1, 0, 1, "minecraft:max_health", 2f, false);
-        attr("scv_vigor", t, Tier.SMALL, 1, 1, 1, "minecraft:max_health", 2f, false, "scv_hp");
-        mech("scv_loot", t, Tier.MEDIUM, 2, 2, 1, "fast_looting", "scv_vigor");
-        skill("scv_active", t, Tier.LARGE, 3, 3, 1, "scavenger_discover", "scv_convert");
+        attr("scv_origin", t, Tier.MEDIUM, 1, 0, 0, "minecraft:movement_speed", 0.02f, true);
+        attr("scv_speed", t, Tier.SMALL, 1, 0, -1, "minecraft:movement_speed", 0.03f, true, "scv_origin");
+        attr("scv_gust", t, Tier.SMALL, 1, 0, -2, "minecraft:movement_speed", 0.03f, true, "scv_speed");
+        attr("scv_eye", t, Tier.SMALL, 1, 2, 0, "minecraft:luck", 1f, false, "scv_origin");
+        mech("scv_supply", t, Tier.MEDIUM, 2, 4, 0, "supply_conversion_15", "scv_eye");
+        attr("scv_hp", t, Tier.SMALL, 1, 0, 1, "minecraft:max_health", 1f, false, "scv_origin");
+        attr("scv_vigor", t, Tier.SMALL, 1, 0, 2, "minecraft:max_health", 1f, false, "scv_hp");
+        mech("scv_loot", t, Tier.MEDIUM, 2, 0, 3, "fast_looting", "scv_vigor");
+        attr("scv_pack", t, Tier.SMALL, 1, -2, 0, "minecraft:armor", 1f, false, "scv_origin");
+        mech("scv_convert", t, Tier.LARGE, 3, -4, 0, "waste_to_wealth", "scv_pack", "scv_supply", "scv_loot");
+        skill("scv_active", t, Tier.LARGE, 3, 0, 4, "scavenger_discover", "scv_convert");
     }
 }

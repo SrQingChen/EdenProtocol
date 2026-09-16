@@ -24,6 +24,7 @@ import com.srqingchen.eden.system.OasisSystem;
 import com.srqingchen.eden.system.PollutionCoreSystem;
 import com.srqingchen.eden.system.RaidGambitSystem;
 import com.srqingchen.eden.system.ReviveSystem;
+import com.srqingchen.eden.system.TipsSystem;
 import com.srqingchen.eden.system.TriggerCards;
 import com.srqingchen.eden.talent.TalentMechanics;
 import com.srqingchen.eden.talent.TalentSystem;
@@ -94,6 +95,10 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(CurseCardSystem::onLogout);
         // Daily market fluctuation + shortage good (§19.3), locked while a crew is in the raid world.
         NeoForge.EVENT_BUS.addListener(MarketSystem::onServerTick);
+        // Periodic "did you know" guidance tips (§1 引导): slow, jittered, colour-coded chat lines.
+        NeoForge.EVENT_BUS.addListener(TipsSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(TipsSystem::onLogin);
+        NeoForge.EVENT_BUS.addListener(TipsSystem::onServerStopped);
         // §19.5 gamble items: hunter spawn scheduling + bounty drops, relic challenge feats.
         NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onLivingDrops);
