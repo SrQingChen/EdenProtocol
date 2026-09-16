@@ -53,6 +53,8 @@ public class EdenNetwork {
         void openLaunchPad(OpenLaunchPadPayload payload);
 
         void openChronicle(ChroniclePayload payload);
+
+        void openRiftAltar(OpenRiftAltarPayload payload);
     }
 
     @Nullable
@@ -87,6 +89,9 @@ public class EdenNetwork {
         registrar.playToServer(LaunchRaidPayload.TYPE, LaunchRaidPayload.STREAM_CODEC, EdenNetwork::handleLaunchRaid);
         // Chronicle wall (§13/§14): server pushes the campaign snapshot; the screen is read-only.
         registrar.playToClient(ChroniclePayload.TYPE, ChroniclePayload.STREAM_CODEC, EdenNetwork::handleChronicle);
+        // Rift altar (v2 card forge): open is client-bound, forge requests are server-bound and re-validated.
+        registrar.playToClient(OpenRiftAltarPayload.TYPE, OpenRiftAltarPayload.STREAM_CODEC, EdenNetwork::handleOpenRiftAltar);
+        registrar.playToServer(RiftForgePayload.TYPE, RiftForgePayload.STREAM_CODEC, EdenNetwork::handleRiftForge);
     }
 
     private static void handleSync(SyncRaidStatePayload payload, IPayloadContext context) {
@@ -170,6 +175,26 @@ public class EdenNetwork {
                 EdenMessages.send(sp, Type.SUCCESS, "eden.msg.entered_raid", payload.difficulty());
             } else {
                 EdenMessages.send(sp, Type.DANGER, "eden.msg.raid_dim_unavailable");
+            }
+        });
+    }
+
+    private static void handleOpenRiftAltar(OpenRiftAltarPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (EdenNetwork.clientHooks != null) {
+                EdenNetwork.clientHooks.openRiftAltar(payload);
+            }
+        });
+    }
+
+    private static void handleRiftForge(RiftForgePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                if ("fuse".equals(payload.recipe())) {
+                    com.srqingchen.eden.system.RiftForge.fuse(sp, payload.slotA(), payload.slotB(), payload.slotC());
+                } else if ("ascend".equals(payload.recipe())) {
+                    com.srqingchen.eden.system.RiftForge.ascend(sp, payload.slotA(), payload.slotB());
+                }
             }
         });
     }

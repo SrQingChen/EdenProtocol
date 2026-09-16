@@ -29,6 +29,7 @@ public class EdenCreativeTabs {
                         output.accept(EdenItems.PARADISE_GATE_ITEM.get());
                         output.accept(EdenItems.LOCKER_ITEM.get());
                         output.accept(EdenItems.CHRONICLE_WALL_ITEM.get());
+                        output.accept(EdenItems.RIFT_ALTAR_ITEM.get());
                         // Items
                         output.accept(EdenItems.LOCATOR.get());
                         output.accept(EdenItems.TAINT_CRYSTAL.get());

@@ -40,12 +40,14 @@
 |---|---|
 | 🃏 **卡牌构筑** | 3 个 Curios 卡槽，23 张纯净/诅咒卡；诅咒卡带 Tab 键主动技能（短按爆发 / 长按焚卡）与侵蚀代价 |
 | 🌟 **天赋星图** | 5 职业 × 92 节点的放射状星图（J 键）：星型节点从中心向外点亮，属性实时生效；每职业一个主动技能（R 键） |
-| 🧪 **尘星战役** | 全服污染度计量：核心、屠龙、阶段跃迁逐级解锁内容；污染归零开启净土维度与全服胜利 |
+| 🧪 **尘星战役** | 全服污染度计量：核心、屠龙、生态 Boss、阶段跃迁逐级解锁内容；污染归零开启净土维度与全服胜利 |
 | 🎲 **每局词缀** | 每局随机 1–3 个污染词缀，**进局只揭示第一个**——用扫描器、时间或洞察卡逐步破译其余 |
 | 🛒 **市场波动** | 商店价格逐日 ±30% 浮动、每日紧缺物资回收 +50%；有人远征时市场冻结 |
 | 🎒 **撤离高潮** | 充能期浊潮波次、可被击穿的净化护罩、一次性的生命维持场——防守本身会拖慢发射 |
 | 🛰️ **方舟太空站** | 虚空中的代码生成轨道站台：中央反应堆桁架、青色能源环、信标灯阵；也支持放入自己的 `.nbt` 建筑整体替换 |
 | 📊 **信息博弈** | 扫描器读污染浓度/威胁/撤离点方位；寻径卡 HUD 常显撤离指针 |
+| 🌑 **浊潮生态** | 蠕动蔓延的污染积液、三座生态巢穴 Boss（孢子母树/浊鳞巨物/深渊掘凿者）、高风险难度限定的浊雨事件——每个 Boss 都掉落祭坛升星材料 |
+| ⚒️ **裂隙祭坛** | 卡牌锻造：三张同品质卡融合升阶；Boss 材料 + 物资点为爱卡升星（上限 5★） |
 | 💬 **引导情报** | 聊天栏低频「你知道吗？」小知识：随机配色播报，关键机制以流转的虹彩字体提醒 |
 
 ## 快速上手（单机 / 小型服务器）
@@ -76,8 +78,8 @@ Sophisticated Core/Backpacks: LGPL-3.0 · Just Enough Characters: MIT · entity_
 代码生成的轨道太空站、地形污染采用「原版贴图 + 浅紫罩色」、天赋星图改为星型节点放射布局，
 并加入聊天引导小知识。
 
-**接下来（v2）**：浊潮生态（污染液 / 酸雨 / 生态 Boss）、卡牌协同套装、世界复净演出、赛季化与
-编年史高光扩展。欢迎在 Issues 里提想法。
+**接下来（v2 余项）**：卡牌协同套装、世界复净演出、赛季化与编年史高光扩展。浊潮生态首批（污染积液 /
+生态巢穴 Boss ×3 / 浊雨 / 裂隙祭坛锻造）已在本版实装。欢迎在 Issues 里提想法。
 
 ## 授权
 
@@ -99,8 +101,10 @@ random extraction points with swarm-defense climaxes), the **Duststar campaign**
 stage-gated unlocks, core destruction and dragon bounties), and the **Paradise endgame** (server-wide victory).
 
 Also features a Curios card-build system (23 cards with curse-card actives on Tab), five classes with R-key
-actives, crew-scaled threats, low-frequency "did you know" guidance tips, and an idempotent code-built
-orbital station (or bring your own `.nbt` ark).
+actives, crew-scaled threats, low-frequency "did you know" guidance tips, an idempotent code-built
+orbital station (or bring your own `.nbt` ark), and the first v2 tidal-ecology wave: creeping tainted
+sludge, three ecology-lair bosses whose materials fuel the rift altar's card forging, and high-risk-only
+tainted rain events.
 
 *Status: **alpha** — the core loop and most v1 systems are playable; art is placeholder in places and
 content is still expanding.*

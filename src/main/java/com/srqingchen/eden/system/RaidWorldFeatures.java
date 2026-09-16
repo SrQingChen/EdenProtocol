@@ -50,6 +50,7 @@ public final class RaidWorldFeatures {
         }
         OasisSystem.placeOasis(raid, data, rand);
         PollutionCoreSystem.placeCores(raid, data, rand);
+        EcologySystem.placeFeatures(raid, data, rand);
         data.markSeeded();
         EdenProtocol.LOGGER.info("[Eden] seeded fresh raid world: {} evacuation points, oasis={}, cores={}",
                 evacCount, data.hasOasis(), data.cores().size());

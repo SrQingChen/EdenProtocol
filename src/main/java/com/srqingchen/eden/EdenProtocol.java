@@ -16,6 +16,7 @@ import com.srqingchen.eden.system.AffixSystem;
 import com.srqingchen.eden.system.CrewScaler;
 import com.srqingchen.eden.system.CurseCardSystem;
 import com.srqingchen.eden.system.DragonHunt;
+import com.srqingchen.eden.system.EcologySystem;
 import com.srqingchen.eden.system.ErosionSystem;
 import com.srqingchen.eden.system.ExtractionClimaxSystem;
 import com.srqingchen.eden.system.FailureRetention;
@@ -125,6 +126,10 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(ReviveSystem::onRespawn);
         NeoForge.EVENT_BUS.addListener(EdenTooltips::onTooltip);
         NeoForge.EVENT_BUS.addListener(FailureRetention::onLivingDrops);
+        // v2 浊潮生态: lair wake + acid rain tick, boss kill/drop rewards.
+        NeoForge.EVENT_BUS.addListener(EcologySystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(EcologySystem::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(EcologySystem::onLivingDrops);
         // Talent system (P2): transient attribute modifiers do not persist, so re-apply them on login/respawn/dimension
         // change; login also pushes the talent snapshot to the client (drives ClientTalentData + the talent screen).
         NeoForge.EVENT_BUS.addListener(TalentSystem::onLogin);

@@ -20,13 +20,30 @@ import java.util.List;
  * (a launched or griefed pod is lazily pruned from the list on lookup).
  */
 public class RaidWorldData extends SavedData {
+    /** One ecology lair: its anchor position, its kind and whether its boss already woke. */
+    public record Lair(BlockPos pos, int kind, boolean awake) {}
+
+    public static final Codec<Lair> LAIR_CODEC = RecordCodecBuilder.create(inst -> inst.group(
+            BlockPos.CODEC.fieldOf("pos").forGetter(Lair::pos),
+            Codec.INT.optionalFieldOf("kind", 0).forGetter(Lair::kind),
+            Codec.BOOL.optionalFieldOf("awake", false).forGetter(Lair::awake)
+    ).apply(inst, Lair::new));
+
+    public static final int LAIR_SPORE = 0;
+    public static final int LAIR_LEVIATHAN = 1;
+    public static final int LAIR_EXCAVATOR = 2;
+
     public static final Codec<RaidWorldData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.BOOL.optionalFieldOf("seeded", false).forGetter(d -> d.seeded),
             BlockPos.CODEC.listOf().optionalFieldOf("extraction_points", List.of()).forGetter(d -> d.extractionPoints),
             Codec.BOOL.optionalFieldOf("has_oasis", false).forGetter(d -> d.hasOasis),
             BlockPos.CODEC.optionalFieldOf("oasis_pos", BlockPos.ZERO).forGetter(d -> d.oasisPos),
             BlockPos.CODEC.listOf().optionalFieldOf("cores", List.of()).forGetter(d -> d.cores),
-            BlockPos.CODEC.listOf().optionalFieldOf("awake_cores", List.of()).forGetter(d -> d.awakeCores)
+            BlockPos.CODEC.listOf().optionalFieldOf("awake_cores", List.of()).forGetter(d -> d.awakeCores),
+            LAIR_CODEC.listOf().optionalFieldOf("lairs", List.of()).forGetter(d -> d.lairs),
+            Codec.INT.optionalFieldOf("rain_state", 0).forGetter(d -> d.rainState),
+            Codec.LONG.optionalFieldOf("rain_at", 0L).forGetter(d -> d.rainAt),
+            Codec.LONG.optionalFieldOf("rain_end", 0L).forGetter(d -> d.rainEnd)
     ).apply(inst, RaidWorldData::new));
 
     public static final SavedDataType<RaidWorldData> TYPE = new SavedDataType<>(
@@ -43,12 +60,19 @@ public class RaidWorldData extends SavedData {
     private List<BlockPos> cores = new ArrayList<>();
     /** Cores whose guardians already spawned (persistence: a relog must not re-wake a spent core). */
     private List<BlockPos> awakeCores = new ArrayList<>();
+    /** Ecology lairs (v2 浊潮生态): spore mound / leviathan pond / excavator burrow. */
+    private List<Lair> lairs = new ArrayList<>();
+    /** Acid-rain state machine (v2 浊雨): 0 idle, 1 scheduled, 2 warned, 3 active, 4 done. */
+    private int rainState;
+    private long rainAt;
+    private long rainEnd;
 
     public RaidWorldData() {
     }
 
     private RaidWorldData(boolean seeded, List<BlockPos> extractionPoints, boolean hasOasis,
-                          BlockPos oasisPos, List<BlockPos> cores, List<BlockPos> awakeCores) {
+                          BlockPos oasisPos, List<BlockPos> cores, List<BlockPos> awakeCores,
+                          List<Lair> lairs, int rainState, long rainAt, long rainEnd) {
         this.seeded = seeded;
         this.extractionPoints = new ArrayList<>(extractionPoints);
         this.hasOasis = hasOasis;
@@ -116,6 +140,52 @@ public class RaidWorldData extends SavedData {
             this.awakeCores.add(pos.immutable());
             setDirty();
         }
+    }
+
+    public List<Lair> lairs() {
+        return this.lairs;
+    }
+
+    public void addLair(BlockPos pos, int kind) {
+        this.lairs.add(new Lair(pos.immutable(), kind, false));
+        setDirty();
+    }
+
+    public void markLairAwake(BlockPos pos) {
+        for (int i = 0; i < this.lairs.size(); i++) {
+            Lair l = this.lairs.get(i);
+            if (l.pos().equals(pos) && !l.awake()) {
+                this.lairs.set(i, new Lair(l.pos(), l.kind(), true));
+                setDirty();
+            }
+        }
+    }
+
+    public int rainState() {
+        return this.rainState;
+    }
+
+    public void setRainState(int state) {
+        this.rainState = state;
+        setDirty();
+    }
+
+    public long rainAt() {
+        return this.rainAt;
+    }
+
+    public void setRain(long at) {
+        this.rainAt = at;
+        setDirty();
+    }
+
+    public long rainEnd() {
+        return this.rainEnd;
+    }
+
+    public void setRainEnd(long at) {
+        this.rainEnd = at;
+        setDirty();
     }
 
     /** Fetch (or create) this expedition world's data from the raid overworld's storage. */

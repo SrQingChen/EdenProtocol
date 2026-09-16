@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "level=0": {
+      "model": "eden:block/tainted_sludge"
+    },
+    "level=1": {
+      "model": "eden:block/tainted_sludge"
+    },
+    "level=2": {
+      "model": "eden:block/tainted_sludge"
+    },
+    "level=3": {
+      "model": "eden:block/tainted_sludge_source"
+    }
+  }
+}

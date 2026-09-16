@@ -8,7 +8,9 @@ import com.srqingchen.eden.block.ParadiseGateBlock;
 import com.srqingchen.eden.block.PollutionCoreBlock;
 import com.srqingchen.eden.block.ReturnPodBlock;
 import com.srqingchen.eden.block.ReturnPodExtensionBlock;
+import com.srqingchen.eden.block.RiftAltarBlock;
 import com.srqingchen.eden.block.ShopBlock;
+import com.srqingchen.eden.block.TaintedSludgeBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
@@ -68,6 +70,16 @@ public class EdenBlocks {
     /** Personal stash terminal (§13): every player sees their own 27-slot SavedData locker. */
     public static final DeferredBlock<LockerBlock> LOCKER = BLOCKS.registerBlock("locker",
             LockerBlock::new, p -> p.mapColor(MapColor.METAL).strength(3.0f, 3.0f).lightLevel(s -> 4));
+
+    /** 污染积液 (v2 浊潮生态): creeping collisionless sludge pooled at cores/lairs and by 浊雨. No item. */
+    public static final DeferredBlock<TaintedSludgeBlock> TAINTED_SLUDGE = BLOCKS.registerBlock("tainted_sludge",
+            TaintedSludgeBlock::new, p -> p.mapColor(MapColor.COLOR_PURPLE).strength(0.4f).noCollision()
+                    .randomTicks().lightLevel(s -> 3).replaceable());
+
+    /** 裂隙祭坛 (v2): the ark card-forge - fuse / ascend via the code-drawn altar screen. */
+    public static final DeferredBlock<RiftAltarBlock> RIFT_ALTAR = BLOCKS.registerBlock("rift_altar",
+            RiftAltarBlock::new, p -> p.mapColor(MapColor.COLOR_PURPLE).strength(3.0f, 3.0f).noOcclusion()
+                    .lightLevel(s -> 9));
 
     /** Chronicle wall (§13) = the campaign panel (§14): pollution gauge, stage, tallies, highlights. */
     public static final DeferredBlock<ChronicleWallBlock> CHRONICLE_WALL = BLOCKS.registerBlock("chronicle_wall",

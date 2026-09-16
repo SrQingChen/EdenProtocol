@@ -30,6 +30,17 @@ public class EdenItems {
     // --- Extraction / energy ---
     public static final DeferredItem<LocatorItem> LOCATOR = ITEMS.registerItem("locator", p -> new LocatorItem(p.stacksTo(16)));
     public static final DeferredItem<Item> TAINT_CRYSTAL = ITEMS.registerSimpleItem("taint_crystal", p -> p.stacksTo(64));
+
+    // ---------- v2 浊潮生态 boss materials (rift-altar ascend fuel) ----------
+
+    /** 孢子母树掉落：裂隙祭坛升星材料。 */
+    public static final DeferredItem<Item> SPORE_SAC = ITEMS.registerSimpleItem("spore_sac", p -> p.stacksTo(16));
+
+    /** 浊鳞巨物掉落：裂隙祭坛升星材料。 */
+    public static final DeferredItem<Item> TAINTED_SCALE = ITEMS.registerSimpleItem("tainted_scale", p -> p.stacksTo(16));
+
+    /** 深渊掘凿者掉落：裂隙祭坛升星材料。 */
+    public static final DeferredItem<Item> EXCAVATOR_CLAW = ITEMS.registerSimpleItem("excavator_claw", p -> p.stacksTo(16));
     public static final DeferredItem<Item> EDEN_CELL = ITEMS.registerSimpleItem("eden_cell", p -> p.stacksTo(16));
 
     // --- Salvage / research materials ---
@@ -161,6 +172,7 @@ public class EdenItems {
     public static final DeferredItem<BlockItem> RETURN_POD_ITEM = ITEMS.registerSimpleBlockItem("return_pod", EdenBlocks.RETURN_POD);
     public static final DeferredItem<BlockItem> LAUNCH_PAD_ITEM = ITEMS.registerSimpleBlockItem("launch_pad", EdenBlocks.LAUNCH_PAD);
     public static final DeferredItem<BlockItem> SHOP_ITEM = ITEMS.registerSimpleBlockItem("shop", EdenBlocks.SHOP);
+    public static final DeferredItem<BlockItem> RIFT_ALTAR_ITEM = ITEMS.registerSimpleBlockItem("rift_altar", EdenBlocks.RIFT_ALTAR);
     public static final DeferredItem<BlockItem> POLLUTION_CORE_ITEM = ITEMS.registerSimpleBlockItem("pollution_core", EdenBlocks.POLLUTION_CORE);
     public static final DeferredItem<BlockItem> PARADISE_GATE_ITEM = ITEMS.registerSimpleBlockItem("paradise_gate", EdenBlocks.PARADISE_GATE);
     public static final DeferredItem<BlockItem> LOCKER_ITEM = ITEMS.registerSimpleBlockItem("locker", EdenBlocks.LOCKER);

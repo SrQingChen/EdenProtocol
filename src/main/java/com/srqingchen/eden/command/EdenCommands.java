@@ -223,6 +223,7 @@ public class EdenCommands {
         int flags = Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS;
         ark.setBlock(pad, EdenBlocks.LAUNCH_PAD.get().defaultBlockState(), flags);
         ark.setBlock(pad.east(2), EdenBlocks.SHOP.get().defaultBlockState(), flags);
+        ark.setBlock(pad.east(4), EdenBlocks.RIFT_ALTAR.get().defaultBlockState(), flags);
         ark.setBlock(pad.west(2), Blocks.CHEST.defaultBlockState(), flags);
         // Personal lockers + the chronicle wall (campaign panel) flank the pad.
         ark.setBlock(pad.south(2), EdenBlocks.LOCKER.get().defaultBlockState(), flags);

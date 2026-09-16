@@ -65,7 +65,11 @@ public final class TipsSystem {
             new Tip("eden.tip.difficulty", false),   // difficulty tiers + unlock gates
             new Tip("eden.tip.paradise", false),     // paradise victory
             new Tip("eden.tip.greed", false),        // curse cards: power at a price
-            new Tip("eden.tip.crew", false)          // crew scaling
+            new Tip("eden.tip.crew", false),         // crew scaling
+            new Tip("eden.tip.sludge", false),       // v2: creeping sludge hazard
+            new Tip("eden.tip.eco_boss", true),      // v2: ecology lairs + altar fuel
+            new Tip("eden.tip.rift_altar", false),   // v2: card forge
+            new Tip("eden.tip.acid_rain", true)      // v2: tainted rain on high risk
     );
 
     /** Curated pastel-ish palette for normal tips (readable on the dark chat background). */
