@@ -649,5 +649,22 @@
   "eden.tip.acid_rain": "High-risk runs can hit tainted rain: a warning sounds ~1 minute before it pours, and the open sky bleeds erosion - take cover when the alarm sounds.",
   "eden.cinematic.title": "Eden Protocol · Cinematic",
   "eden.cinematic.skip": "Hold SPACE to skip",
-  "eden.subtitle.cinematic": "Eden Protocol cinematic"
+  "eden.subtitle.cinematic": "Eden Protocol cinematic",
+  "eden.season.contract.survey": "Deep Corridor Survey",
+  "eden.season.contract.survey.desc": "Explore 300 blocks of natural cave passages (underground movement sampling).",
+  "eden.season.contract.miner": "Vein Hunter",
+  "eden.season.contract.miner.desc": "Mine 96 ore blocks in the deepslate layer (y<0).",
+  "eden.season.contract.lodge": "Relic Lodging",
+  "eden.season.contract.lodge.desc": "Spend one full game night inside a mineshaft or trial chamber.",
+  "eden.season.contract.haul": "Deep Haul",
+  "eden.season.contract.haul.desc": "Extract successfully with a settlement worth >=60 supply points.",
+  "eden.season.contract.purge": "Lair Purge",
+  "eden.season.contract.purge.desc": "Kill 3 ecology bosses or core guardians.",
+  "eden.season.msg.selected": "Contract carried: %s (settles on a successful extraction)",
+  "eden.season.msg.missed": "Contract '%s' goal not met - no payout this run.",
+  "eden.season.msg.completed": "Contract complete: '%s'! +%s supply points.",
+  "eden.season.msg.threshold": "Season advance unlocked (3/5 contracts) - the chronicle wall's ADVANCE button is live.",
+  "eden.season.msg.advanced": "Season %s begins: the campaign resets, the purification goes on.",
+  "eden.season.cmd.status": "Current season: %s, contracts %s/5 done",
+  "eden.season.cmd.gate": "Advance gate not met (needs 3/5 contracts)."
 }

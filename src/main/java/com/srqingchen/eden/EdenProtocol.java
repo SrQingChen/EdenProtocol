@@ -104,6 +104,11 @@ public class EdenProtocol {
         // Event-triggered cinematics (v3): first join + first raid entry (+ season API).
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onLogin);
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onChangedDimension);
+        // Season & expedition contracts (S1 矿洞季, batch A): goal tracking + logout cleanup.
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonTracker::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonTracker::onBlockBreak);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonTracker::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonTracker::onLogout);
         // §19.5 gamble items: hunter spawn scheduling + bounty drops, relic challenge feats.
         NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onLivingDrops);

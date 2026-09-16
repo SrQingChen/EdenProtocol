@@ -51,6 +51,11 @@ public class EdenCommands {
                                 .executes(ctx -> startRaid(ctx, StringArgumentType.getString(ctx, "difficulty")))))
                 .then(Commands.literal("stop").requires(EDEN_ADMIN).executes(EdenCommands::stopRaid))
                 .then(Commands.literal("status").executes(EdenCommands::status))
+                .then(Commands.literal("season").executes(EdenCommands::seasonStatus)
+                        .then(Commands.literal("advance").requires(EDEN_ADMIN).executes(EdenCommands::seasonAdvance))
+                        .then(Commands.literal("contract").requires(EDEN_ADMIN)
+                                .then(Commands.argument("id", StringArgumentType.word())
+                                        .executes(ctx -> seasonContract(ctx, StringArgumentType.getString(ctx, "id"))))))
                 .then(Commands.literal("set_difficulty").requires(EDEN_ADMIN)
                         .then(Commands.argument("difficulty", StringArgumentType.word())
                                 .executes(ctx -> setDifficulty(ctx, StringArgumentType.getString(ctx, "difficulty")))))
@@ -234,6 +239,38 @@ public class EdenCommands {
             DimensionManager.enterArk(player);
         }
         ctx.getSource().sendSuccess(() -> EdenMessages.styled(Type.SUCCESS, "eden.msg.ark_outfitted"), true);
+        return 1;
+}
+
+    // ---------- season & contracts (S1 批 A) ----------
+
+    private static int seasonStatus(CommandContext<CommandSourceStack> ctx) {
+        var data = com.srqingchen.eden.data.CampaignData.get(ctx.getSource().getServer());
+        ctx.getSource().sendSuccess(() -> EdenMessages.styled(Type.INFO, "eden.season.cmd.status",
+                data.seasonIndex(), data.contractsDone().size()), false);
+        for (var c : com.srqingchen.eden.season.SeasonSystem.currentContracts(ctx.getSource().getServer())) {
+            boolean done = data.isContractDone(c.id());
+            ctx.getSource().sendSystemMessage(Component.literal(
+                    (done ? "[x] " : "[ ] ") + c.id() + " (" + c.goal() + " " + c.target() + ")"));
+        }
+        return 1;
+    }
+
+    private static int seasonAdvance(CommandContext<CommandSourceStack> ctx) {
+        if (!com.srqingchen.eden.season.SeasonSystem.canAdvance(ctx.getSource().getServer())) {
+            ctx.getSource().sendFailure(EdenMessages.styled(Type.WARNING, "eden.season.cmd.gate"));
+            return 0;
+        }
+        com.srqingchen.eden.season.SeasonSystem.advanceSeason(ctx.getSource().getServer());
+        return 1;
+    }
+
+    private static int seasonContract(CommandContext<CommandSourceStack> ctx, String id) {
+        ServerPlayer p = ctx.getSource().getPlayer();
+        if (p == null) {
+            return 0;
+        }
+        com.srqingchen.eden.season.SeasonSystem.selectContract(p, id);
         return 1;
     }
 }

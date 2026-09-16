@@ -47,7 +47,11 @@ public class CampaignData extends SavedData {
             Codec.INT.optionalFieldOf("cores_destroyed", 0).forGetter(d -> d.coresDestroyed),
             Codec.INT.optionalFieldOf("dragons_slain", 0).forGetter(d -> d.dragonsSlain),
             Codec.BOOL.optionalFieldOf("paradise_unlocked", false).forGetter(d -> d.paradiseUnlocked),
-            HIGHLIGHT_CODEC.listOf().optionalFieldOf("highlights", List.of()).forGetter(d -> d.highlights)
+            HIGHLIGHT_CODEC.listOf().optionalFieldOf("highlights", List.of()).forGetter(d -> d.highlights),
+            Codec.INT.optionalFieldOf("season_index", 1).forGetter(d -> d.seasonIndex),
+            Codec.STRING.listOf().optionalFieldOf("contracts_done", List.of()).forGetter(d -> d.contractsDone),
+            Codec.LONG.optionalFieldOf("season_week_stamp", -1L).forGetter(d -> d.seasonWeekStamp),
+            Codec.INT.optionalFieldOf("seasons_advanced", 0).forGetter(d -> d.seasonsAdvanced)
     ).apply(inst, CampaignData::new));
 
     public static final SavedDataType<CampaignData> TYPE = new SavedDataType<>(
@@ -75,6 +79,11 @@ public class CampaignData extends SavedData {
     private int dragonsSlain;
     /** Paradise (eden:paradise) is open for visits once the campaign reaches 0% pollution. */
     private boolean paradiseUnlocked;
+    /** Season system (S1 矿洞季): 1-based season number, per-season finished contract ids, weekly-focus state. */
+    private int seasonIndex = 1;
+    private List<String> contractsDone = new ArrayList<>();
+    private long seasonWeekStamp = -1L;
+    private int seasonsAdvanced = 0;
     /** Chronicle wall highlights, newest first. */
     private List<Highlight> highlights = new ArrayList<>();
 
@@ -87,7 +96,12 @@ public class CampaignData extends SavedData {
     private CampaignData(int supplyPoints, long marketDay, String marketShortage,
                          Map<String, Float> marketFluctuation, float pollution, int stage,
                          int totalRaids, int successfulExtracts, int coresDestroyed, int dragonsSlain,
-                         boolean paradiseUnlocked, List<Highlight> highlights) {
+                         boolean paradiseUnlocked, List<Highlight> highlights, int seasonIndex,
+                         List<String> contractsDone, long seasonWeekStamp, int seasonsAdvanced) {
+        this.seasonIndex = seasonIndex;
+        this.contractsDone = new ArrayList<>(contractsDone);
+        this.seasonWeekStamp = seasonWeekStamp;
+        this.seasonsAdvanced = seasonsAdvanced;
         this.supplyPoints = supplyPoints;
         this.marketDay = marketDay;
         this.marketShortage = marketShortage;
@@ -213,6 +227,54 @@ public class CampaignData extends SavedData {
 
     public void setParadiseUnlocked(boolean unlocked) {
         this.paradiseUnlocked = unlocked;
+        setDirty();
+    }
+
+    public int seasonIndex() {
+        return this.seasonIndex;
+    }
+
+    public List<String> contractsDone() {
+        return this.contractsDone;
+    }
+
+    public boolean isContractDone(String id) {
+        return this.contractsDone.contains(id);
+    }
+
+    public void markContractDone(String id) {
+        if (!this.contractsDone.contains(id)) {
+            this.contractsDone.add(id);
+            setDirty();
+        }
+    }
+
+    public long seasonWeekStamp() {
+        return this.seasonWeekStamp;
+    }
+
+    public void setSeasonWeek(long stamp) {
+        this.seasonWeekStamp = stamp;
+        setDirty();
+    }
+
+    public int seasonsAdvanced() {
+        return this.seasonsAdvanced;
+    }
+
+    /** Season advance (≥3/5): campaign resets, meta progression (supply points) stays. */
+    public void advanceSeason() {
+        this.seasonIndex++;
+        this.seasonsAdvanced++;
+        this.contractsDone = new ArrayList<>();
+        this.pollution = 100.0f;
+        this.stage = 1;
+        this.totalRaids = 0;
+        this.successfulExtracts = 0;
+        this.coresDestroyed = 0;
+        this.dragonsSlain = 0;
+        this.paradiseUnlocked = false;
+        this.highlights = new ArrayList<>();
         setDirty();
     }
 

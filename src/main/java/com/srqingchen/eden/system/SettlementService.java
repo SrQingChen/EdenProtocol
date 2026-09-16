@@ -66,6 +66,7 @@ public class SettlementService {
         }
         applyExtractionBonuses(player, earned);
         EdenMessages.send(player, Type.SUCCESS, "eden.msg.settled", earned, data.getSupplyPoints());
+        com.srqingchen.eden.season.SeasonSystem.onSuccessfulExtract(player, earned);
         return earned;
     }
 

@@ -1,0 +1,167 @@
+package com.srqingchen.eden.season;
+
+import com.srqingchen.eden.system.RaidWorldFeatures;
+import com.srqingchen.eden.util.EdenMessages;
+import com.srqingchen.eden.util.EdenMessages.Type;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+
+import java.util.List;
+
+/**
+ * Season & expedition-contract core (S1 矿洞季, 批 A). A season is a themed content package; each
+ * ships FIVE contracts (委托) that any class can complete - the class changes HOW, never WHETHER.
+ * At launch a player may carry at most ONE; the contract only pays out when the run ends in a
+ * SUCCESSFUL extraction. Three of five done unlocks the server-wide season advance (campaign resets,
+ * meta progression stays).
+ * <p>Progress tracking is per-run session state (static map with login/logout cleanup, mirroring
+ * CurseCardSystem) so the persisted RaidState schema stays untouched in batch A.
+ */
+public final class SeasonSystem {
+    private SeasonSystem() {}
+
+    /** One contract: a goal type, a numeric target and the supply-point reward on payout. */
+    public record Contract(String id, Goal goal, int target, int rewardSupply) {
+
+        public String nameKey() {
+            return "eden.season.contract." + id;
+        }
+
+        public String descKey() {
+            return "eden.season.contract." + id + ".desc";
+        }
+    }
+
+    /** Goal types - each wired to concrete tracking events (see the tick/break/death hooks). */
+    public enum Goal {
+        /** Walk N blocks of natural cave passages (y<0, sky-occluded, sampled). */
+        SURVEY,
+        /** Mine N deepslate-era ore blocks (y<0). */
+        MINE,
+        /** Spend one full game night inside a mineshaft or trial chamber. */
+        LODGE,
+        /** Extract with a settlement worth >= target supply points. */
+        HAUL,
+        /** Kill an ecology boss or three lair-guard waves. */
+        PURGE
+    }
+
+    /** S1 矿洞季 contracts (profession-agnostic by design). */
+    public static final List<Contract> S1 = List.of(
+            new Contract("survey", Goal.SURVEY, 300, 60),
+            new Contract("miner", Goal.MINE, 96, 50),
+            new Contract("lodge", Goal.LODGE, 1, 55),
+            new Contract("haul", Goal.HAUL, 60, 50),
+            new Contract("purge", Goal.PURGE, 3, 65));
+
+    // ---------- per-run session state ----------
+
+    /** Live run state: the carried contract + rolling progress counters. */
+    public static final class Run {
+        public Contract contract;
+        public int surveyBlocks;
+        public int minedOres;
+        public int purgeKills;
+        public int lodgeTicks;
+    }
+
+    private static final java.util.Map<java.util.UUID, Run> RUNS = new java.util.HashMap<>();
+
+    public static Run run(ServerPlayer sp) {
+        return RUNS.computeIfAbsent(sp.getUUID(), k -> new Run());
+    }
+
+    /** Choose the contract to carry (at most one; null clears it). */
+    public static void selectContract(ServerPlayer sp, String id) {
+        Run r = run(sp);
+        r.contract = S1.stream().filter(c -> c.id().equals(id)).findFirst().orElse(null);
+        if (r.contract != null) {
+            EdenMessages.overlay(sp, Type.INFO, "eden.season.msg.selected",
+                    net.minecraft.network.chat.Component.translatable(r.contract.nameKey()));
+        }
+    }
+
+    public static void onLogout(java.util.UUID id) {
+        RUNS.remove(id);
+    }
+
+    /** Weekly focus contract index (rotates every real week, payout x1.5). */
+    public static int weeklyFocusIndex(MinecraftServer server) {
+        long week = System.currentTimeMillis() / (1000L * 60 * 60 * 24 * 7);
+        var data = com.srqingchen.eden.data.CampaignData.get(server);
+        if (data.seasonWeekStamp() != week) {
+            data.setSeasonWeek(week);
+        }
+        return (int) (week % S1.size());
+    }
+
+    // ---------- payout (called from SettlementService on a successful extraction) ----------
+
+    /** Judge the carried contract against the run's counters; payout + broadcast on success. */
+    public static void onSuccessfulExtract(ServerPlayer sp, int earnedSupply) {
+        Run r = RUNS.get(sp.getUUID());
+        MinecraftServer server = sp.level().getServer();
+        if (r == null || r.contract == null || server == null) {
+            return;
+        }
+        var data = com.srqingchen.eden.data.CampaignData.get(server);
+        if (data.isContractDone(r.contract.id())) {
+            return;   // already banked this season
+        }
+        boolean done = switch (r.contract.goal()) {
+            case SURVEY -> r.surveyBlocks >= r.contract.target();
+            case MINE -> r.minedOres >= r.contract.target();
+            case LODGE -> r.lodgeTicks >= r.contract.target();
+            case HAUL -> earnedSupply >= r.contract.target();
+            case PURGE -> r.purgeKills >= r.contract.target();
+        };
+        if (!done) {
+            EdenMessages.overlay(sp, Type.WARNING, "eden.season.msg.missed",
+                    net.minecraft.network.chat.Component.translatable(r.contract.nameKey()));
+            return;
+        }
+        boolean focus = S1.get(weeklyFocusIndex(server)).id().equals(r.contract.id());
+        int pay = Math.round(r.contract.rewardSupply() * (focus ? 1.5f : 1f));
+        data.markContractDone(r.contract.id());
+        data.addSupplyPoints(pay);
+        EdenMessages.send(sp, Type.SUCCESS, "eden.season.msg.completed",
+                net.minecraft.network.chat.Component.translatable(r.contract.nameKey()), pay);
+        // Server-wide milestone broadcast when the crew reaches the advance threshold (3/5).
+        long doneCount = data.contractsDone().size();
+        if (doneCount == 3) {
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                EdenMessages.send(p, Type.SPECIAL, "eden.season.msg.threshold");
+            }
+        }
+    }
+
+    /** Season advance gate: >= 3 of 5 contracts done. */
+    public static boolean canAdvance(MinecraftServer server) {
+        return com.srqingchen.eden.data.CampaignData.get(server).contractsDone().size() >= 3;
+    }
+
+    /** Advance the season (called from the chronicle-wall button / admin command). */
+    public static void advanceSeason(MinecraftServer server) {
+        if (!canAdvance(server)) {
+            return;
+        }
+        var data = com.srqingchen.eden.data.CampaignData.get(server);
+        data.advanceSeason();
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            EdenMessages.send(p, Type.SPECIAL, "eden.season.msg.advanced", data.seasonIndex());
+        }
+        com.srqingchen.eden.system.CinematicSystem.playSeasonChange(server);
+    }
+
+    /** Contracts of the CURRENT season (S1 only for now; future seasons key off seasonIndex). */
+    public static List<Contract> currentContracts(MinecraftServer server) {
+        return S1;   // season 1 = 矿洞季
+    }
+
+    /** Convenience for HUD/GUI: is the player mid-raid in a raid level. */
+    public static boolean inRaid(ServerPlayer sp) {
+        return sp.level() instanceof net.minecraft.server.level.ServerLevel sl
+                && RaidWorldFeatures.isRaidLevel(sl);
+    }
+}

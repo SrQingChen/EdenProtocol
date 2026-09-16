@@ -649,5 +649,22 @@
   "eden.tip.acid_rain": "高风险难度下可能遭遇「浊雨」：预警后约 1 分钟降临，露天会持续掉侵蚀——听到警报就找掩体。",
   "eden.cinematic.title": "净土协议 · 影像记录",
   "eden.cinematic.skip": "长按空格跳过",
-  "eden.subtitle.cinematic": "净土协议影像"
+  "eden.subtitle.cinematic": "净土协议影像",
+  "eden.season.contract.survey": "深巷测绘",
+  "eden.season.contract.survey.desc": "深入天然洞穴，累计探索 300 格巷道（地下移动采样统计）。",
+  "eden.season.contract.miner": "矿脉猎手",
+  "eden.season.contract.miner.desc": "在深板岩层（y<0）采掘 96 个矿石方块。",
+  "eden.season.contract.lodge": "遗迹夜宿",
+  "eden.season.contract.lodge.desc": "在废弃矿井或试炼密室内完整度过一个游戏夜。",
+  "eden.season.contract.haul": "深货商路",
+  "eden.season.contract.haul.desc": "单局结算物资点 ≥60 并成功撤离。",
+  "eden.season.contract.purge": "巢穴清剿",
+  "eden.season.contract.purge.desc": "击杀生态 Boss 或核心守卫共 3 名。",
+  "eden.season.msg.selected": "已携带委托：%s（成功撤离后结算）",
+  "eden.season.msg.missed": "委托「%s」目标未达成，本次不结算。",
+  "eden.season.msg.completed": "委托完成：「%s」！奖励 %s 物资点。",
+  "eden.season.msg.threshold": "赛季推进条件已达成（≥3/5 委托）——编年史墙的「推进赛季」按钮已亮起。",
+  "eden.season.msg.advanced": "新赛季 %s 开启：战役重置，净化远征继续。",
+  "eden.season.cmd.status": "当前赛季：%s,已完成委托 %s/5",
+  "eden.season.cmd.gate": "尚未达到推进条件(需 ≥3/5 委托)。"
 }
