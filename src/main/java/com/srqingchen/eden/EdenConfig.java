@@ -37,6 +37,10 @@ public class EdenConfig {
             .comment("Periodic \"did you know\" guidance tips in chat (random body colour; key tips cycle a hue).")
             .define("tipsEnabled", true);
 
+    public static final ModConfigSpec.BooleanValue CINEMATICS_ENABLED = BUILDER
+            .comment("Event-triggered fullscreen cinematics (intro / first raid entry / season change). Videos are optional assets.")
+            .define("cinematicsEnabled", true);
+
     public static final ModConfigSpec.IntValue TIPS_INTERVAL_MINUTES = BUILDER
             .comment("Average minutes between two chat guidance tips (jittered +/-40%% so it never feels metronomic).")
             .defineInRange("tipsIntervalMinutes", 6, 1, 120);

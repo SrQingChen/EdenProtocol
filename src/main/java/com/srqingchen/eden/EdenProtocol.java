@@ -65,6 +65,7 @@ public class EdenProtocol {
         EdenAttachments.ATTACHMENT_TYPES.register(modEventBus);
         EdenCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         com.srqingchen.eden.registry.EdenParticles.PARTICLES.register(modEventBus);
+        com.srqingchen.eden.registry.EdenSounds.SOUNDS.register(modEventBus);
 
         // Game-bus listeners for game (NeoForge) events, wired explicitly via addListener(method refs).
         // NOTE: do NOT call NeoForge.EVENT_BUS.register(this) here - this class has no @SubscribeEvent
@@ -100,6 +101,9 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(TipsSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(TipsSystem::onLogin);
         NeoForge.EVENT_BUS.addListener(TipsSystem::onServerStopped);
+        // Event-triggered cinematics (v3): first join + first raid entry (+ season API).
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onLogin);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onChangedDimension);
         // §19.5 gamble items: hunter spawn scheduling + bounty drops, relic challenge feats.
         NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(RaidGambitSystem::onLivingDrops);

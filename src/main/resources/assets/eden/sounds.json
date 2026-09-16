@@ -1,0 +1,29 @@
+{
+  "cinematic_intro": {
+    "subtitle": "eden.subtitle.cinematic",
+    "sounds": [
+      {
+        "name": "eden:cinematic/intro",
+        "stream": true
+      }
+    ]
+  },
+  "cinematic_raid": {
+    "subtitle": "eden.subtitle.cinematic",
+    "sounds": [
+      {
+        "name": "eden:cinematic/raid_enter",
+        "stream": true
+      }
+    ]
+  },
+  "cinematic_season": {
+    "subtitle": "eden.subtitle.cinematic",
+    "sounds": [
+      {
+        "name": "eden:cinematic/season_change",
+        "stream": true
+      }
+    ]
+  }
+}

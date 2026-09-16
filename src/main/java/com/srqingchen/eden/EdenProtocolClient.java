@@ -61,6 +61,11 @@ public class EdenProtocolClient {
             public void openRiftAltar(com.srqingchen.eden.network.OpenRiftAltarPayload payload) {
                 Minecraft.getInstance().setScreen(new com.srqingchen.eden.client.gui.RiftAltarScreen(payload.balance()));
             }
+
+            @Override
+            public void playCinematic(com.srqingchen.eden.network.PlayCinematicPayload payload) {
+                com.srqingchen.eden.client.gui.CinematicScreen.open(payload.video(), payload.sound());
+            }
         };
 
         // Client MOD bus: register the HUD layer.

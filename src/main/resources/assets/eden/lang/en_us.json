@@ -646,5 +646,8 @@
   "eden.tip.sludge": "Tainted sludge creeps outward slowly; standing in it stacks pollution and erosion - go around, or bridge over it.",
   "eden.tip.eco_boss": "Three ecology lairs hide in the deep taint: Spore Matriarch, Tainted Leviathan, Deep Excavator. Each kill cuts server pollution by 1% and drops rift-altar ascend materials.",
   "eden.tip.rift_altar": "The ark's Rift Altar forges cards: fuse three same-quality cards up a tier; boss materials + supply ascend a favourite card's stars.",
-  "eden.tip.acid_rain": "High-risk runs can hit tainted rain: a warning sounds ~1 minute before it pours, and the open sky bleeds erosion - take cover when the alarm sounds."
+  "eden.tip.acid_rain": "High-risk runs can hit tainted rain: a warning sounds ~1 minute before it pours, and the open sky bleeds erosion - take cover when the alarm sounds.",
+  "eden.cinematic.title": "Eden Protocol · Cinematic",
+  "eden.cinematic.skip": "Hold SPACE to skip",
+  "eden.subtitle.cinematic": "Eden Protocol cinematic"
 }

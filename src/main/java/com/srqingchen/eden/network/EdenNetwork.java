@@ -55,6 +55,8 @@ public class EdenNetwork {
         void openChronicle(ChroniclePayload payload);
 
         void openRiftAltar(OpenRiftAltarPayload payload);
+
+        void playCinematic(PlayCinematicPayload payload);
     }
 
     @Nullable
@@ -92,6 +94,8 @@ public class EdenNetwork {
         // Rift altar (v2 card forge): open is client-bound, forge requests are server-bound and re-validated.
         registrar.playToClient(OpenRiftAltarPayload.TYPE, OpenRiftAltarPayload.STREAM_CODEC, EdenNetwork::handleOpenRiftAltar);
         registrar.playToServer(RiftForgePayload.TYPE, RiftForgePayload.STREAM_CODEC, EdenNetwork::handleRiftForge);
+        // Cinematics (v3): server-triggered fullscreen videos, client-optional assets.
+        registrar.playToClient(PlayCinematicPayload.TYPE, PlayCinematicPayload.STREAM_CODEC, EdenNetwork::handlePlayCinematic);
     }
 
     private static void handleSync(SyncRaidStatePayload payload, IPayloadContext context) {
@@ -195,6 +199,14 @@ public class EdenNetwork {
                 } else if ("ascend".equals(payload.recipe())) {
                     com.srqingchen.eden.system.RiftForge.ascend(sp, payload.slotA(), payload.slotB());
                 }
+            }
+        });
+    }
+
+    private static void handlePlayCinematic(PlayCinematicPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (EdenNetwork.clientHooks != null) {
+                EdenNetwork.clientHooks.playCinematic(payload);
             }
         });
     }
