@@ -66,6 +66,8 @@ public class EdenProtocol {
         EdenCreativeTabs.CREATIVE_MODE_TABS.register(modEventBus);
         com.srqingchen.eden.registry.EdenParticles.PARTICLES.register(modEventBus);
         com.srqingchen.eden.registry.EdenSounds.SOUNDS.register(modEventBus);
+        // Custom loot conditions for the chest-injection system (eden:raid_dimension / eden:raid_difficulty).
+        com.srqingchen.eden.system.LootInjectionSystem.Conditions.LOOT_CONDITIONS.register(modEventBus);
 
         // Game-bus listeners for game (NeoForge) events, wired explicitly via addListener(method refs).
         // NOTE: do NOT call NeoForge.EVENT_BUS.register(this) here - this class has no @SubscribeEvent
@@ -146,6 +148,10 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(TalentSystem::onLogin);
         NeoForge.EVENT_BUS.addListener(TalentSystem::onRespawn);
         NeoForge.EVENT_BUS.addListener(TalentSystem::onChangedDimension);
+        // Chest-loot injection (§12): injects a per-difficulty pool into every matching loot table as it
+        // loads (vanilla + mods + datapacks); after boot it re-applies the saved config if it differs.
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.LootInjectionSystem::onLootTableLoad);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.LootInjectionSystem::onServerStarted);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, EdenConfig.SPEC);
         modContainer.registerConfig(ModConfig.Type.CLIENT, EdenClientConfig.SPEC);

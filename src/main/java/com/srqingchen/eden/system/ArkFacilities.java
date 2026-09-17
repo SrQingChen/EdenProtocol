@@ -24,7 +24,19 @@ public final class ArkFacilities {
         if (ark == null) {
             return;
         }
-        int y = ark.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, -3);
+        // Walk down past any gate already standing in this column: the heightmap sits ABOVE a placed
+        // gate, so resolving blindly would stack a second gate on the first.
+        int top = ark.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, -3);
+        int y = top;
+        while (y > ark.getMinY() && ark.getBlockState(new BlockPos(0, y - 1, -3)).is(EdenBlocks.PARADISE_GATE.get())) {
+            y--;
+        }
+        for (int dup = y + 1; dup < top; dup++) {
+            BlockPos d = new BlockPos(0, dup, -3);
+            if (ark.getBlockState(d).is(EdenBlocks.PARADISE_GATE.get())) {
+                ark.setBlock(d, Blocks.AIR.defaultBlockState(), 3);
+            }
+        }
         BlockPos pos = new BlockPos(0, y, -3);
         if (ark.getBlockState(pos).is(EdenBlocks.PARADISE_GATE.get())) {
             return;   // already placed

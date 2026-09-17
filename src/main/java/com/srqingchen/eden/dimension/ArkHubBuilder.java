@@ -65,20 +65,42 @@ public final class ArkHubBuilder {
     /**
      * Lay the facility strip onto whatever structure stands at the origin (code-built station OR the
      * user's {@code .nbt} ark): the launch pad anchors at (0, ?, 4) resolved from the heightmap, the
-     * shop / rift altar flank it, lockers + chronicle wall line up one row behind. Each placement is
-     * a plain overwrite of the same state, so calling it again is free.
+     * shop / rift altar flank it, lockers + chronicle wall line up one row behind. Each column is
+     * self-healing: facilities are motion-blocking, so the naive "resolve Y from the heightmap and
+     * set" would resolve one block higher on every ark entry and pile a duplicate on top. Instead we
+     * walk down past existing facility blocks to the deck, clear any stacked duplicates above, and
+     * write the block once at the base.
      */
     public static void placeFacilities(ServerLevel ark) {
         int flags = net.minecraft.world.level.block.Block.UPDATE_NEIGHBORS | net.minecraft.world.level.block.Block.UPDATE_CLIENTS;
-        int y = ark.getHeight(Heightmap.Types.MOTION_BLOCKING, 0, FACILITY_Z);
-        BlockPos pad = new BlockPos(0, y, FACILITY_Z);
-        ark.setBlock(pad, EdenBlocks.LAUNCH_PAD.get().defaultBlockState(), flags);
-        ark.setBlock(pad.east(3), EdenBlocks.SHOP.get().defaultBlockState(), flags);
-        ark.setBlock(pad.west(3), EdenBlocks.RIFT_ALTAR.get().defaultBlockState(), flags);
-        BlockPos back = new BlockPos(0, y, FACILITY_Z + 2);
-        ark.setBlock(back, EdenBlocks.CHRONICLE_WALL.get().defaultBlockState(), flags);
-        ark.setBlock(back.east(3), EdenBlocks.LOCKER.get().defaultBlockState(), flags);
-        ark.setBlock(back.west(3), EdenBlocks.LOCKER.get().defaultBlockState(), flags);
+        facility(ark, 0, FACILITY_Z, EdenBlocks.LAUNCH_PAD.get().defaultBlockState(), flags);
+        facility(ark, 3, FACILITY_Z, EdenBlocks.SHOP.get().defaultBlockState(), flags);
+        facility(ark, -3, FACILITY_Z, EdenBlocks.RIFT_ALTAR.get().defaultBlockState(), flags);
+        facility(ark, 0, FACILITY_Z + 2, EdenBlocks.CHRONICLE_WALL.get().defaultBlockState(), flags);
+        facility(ark, 3, FACILITY_Z + 2, EdenBlocks.LOCKER.get().defaultBlockState(), flags);
+        facility(ark, -3, FACILITY_Z + 2, EdenBlocks.LOCKER.get().defaultBlockState(), flags);
+    }
+
+    /** Place one facility block idempotently at the base of its column, removing stacked duplicates. */
+    private static void facility(ServerLevel ark, int x, int z, BlockState state, int flags) {
+        int top = ark.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+        int y = top;
+        while (y > ark.getMinY() && isFacility(ark.getBlockState(new BlockPos(x, y - 1, z)))) {
+            y--;
+        }
+        for (int dup = y + 1; dup < top; dup++) {
+            BlockPos p = new BlockPos(x, dup, z);
+            if (isFacility(ark.getBlockState(p))) {
+                ark.setBlock(p, Blocks.AIR.defaultBlockState(), flags);
+            }
+        }
+        ark.setBlock(new BlockPos(x, y, z), state, flags);
+    }
+
+    private static boolean isFacility(BlockState state) {
+        return state.is(EdenBlocks.LAUNCH_PAD.get()) || state.is(EdenBlocks.SHOP.get())
+                || state.is(EdenBlocks.RIFT_ALTAR.get()) || state.is(EdenBlocks.CHRONICLE_WALL.get())
+                || state.is(EdenBlocks.LOCKER.get());
     }
 
     /**

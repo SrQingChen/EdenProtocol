@@ -1,7 +1,9 @@
 package com.srqingchen.eden.client.gui;
 
 import com.srqingchen.eden.data.DifficultyConfigData;
+import com.srqingchen.eden.network.EditorDataPayload;
 import com.srqingchen.eden.network.SaveConfigPayload;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -20,6 +22,8 @@ import java.util.Locale;
  * difficulty's rows (profile + charge / particle tuning / card-quality weights / card-star weights) as -/+
  * steppers. Nothing changes until Save pushes the whole table back to the server ({@link SaveConfigPayload}),
  * which clamps and persists it. The row buttons are generic; the active tab decides what each row adjusts.
+ * <p>Below the difficulty column,「战利品…」opens {@link LootEditorScreen}, which edits the chest-loot
+ * injection rules and pools (saved separately and applied via a datapack reload).
  */
 @OnlyIn(Dist.CLIENT)
 public class DifficultyEditorScreen extends Screen {
@@ -44,16 +48,25 @@ public class DifficultyEditorScreen extends Screen {
     private final float[] base, cell, crystal, pScale, pChance, pSpeed;
     private final int[] pDensity;
     private final int[][] quality, star;
+    /** Chest-loot injection state, edited in the sub-screen and saved through its own payload. */
+    private final LootEditorScreen.State loot;
 
     private final List<Button> difficultyBtns = new ArrayList<>();
     private final List<Button> tabBtns = new ArrayList<>();
     private final List<Button> minusBtns = new ArrayList<>();
     private final List<Button> plusBtns = new ArrayList<>();
     private Button profileBtn;
+    private Button lootBtn;
     private int editing = 0, tab = 0;
 
+    public DifficultyEditorScreen(EditorDataPayload payload) {
+        this(payload.profiles(), payload.selected(), payload.charge(), payload.particle(),
+                payload.density(), payload.quality(), payload.star(), LootEditorScreen.State.fromPayload(payload));
+    }
+
     public DifficultyEditorScreen(List<String> profiles, List<String> selected, List<Float> charge,
-                                  List<Float> particle, List<Integer> density, List<Integer> quality, List<Integer> star) {
+                                  List<Float> particle, List<Integer> density, List<Integer> quality, List<Integer> star,
+                                  LootEditorScreen.State loot) {
         super(Component.translatable("eden.editor.title"));
         int n = DifficultyConfigData.DIFFICULTIES.size();
         int qc = DifficultyConfigData.QUALITY_COUNT, sc = DifficultyConfigData.STAR_COUNT;
@@ -75,6 +88,7 @@ public class DifficultyEditorScreen extends Screen {
             for (int q = 0; q < qc; q++) this.quality[i][q] = integer(quality, i * qc + q, 1);
             for (int s = 0; s < sc; s++) this.star[i][s] = integer(star, i * sc + s, 1);
         }
+        this.loot = loot;
     }
 
     @Override
@@ -97,6 +111,10 @@ public class DifficultyEditorScreen extends Screen {
         this.profileBtn = Button.builder(Component.empty(), btn -> cycleProfile())
                 .bounds(RIGHT_X, 52, 232, 18).build();
         addRenderableWidget(this.profileBtn);
+        this.lootBtn = Button.builder(Component.translatable("eden.editor.loot.button"),
+                        btn -> Minecraft.getInstance().setScreen(new LootEditorScreen(this.loot, this)))
+                .bounds(LEFT_X, 52 + DifficultyConfigData.DIFFICULTIES.size() * 22 + 6, LEFT_W, 18).build();
+        addRenderableWidget(this.lootBtn);
         for (int r = 0; r < 5; r++) {
             final int row = r;
             Button minus = Button.builder(Component.literal("-"), btn -> adjust(row, -1))

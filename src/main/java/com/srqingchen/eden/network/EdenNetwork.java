@@ -85,6 +85,9 @@ public class EdenNetwork {
         // edited table back to save. The screen itself opens through ClientHooks (client dist only).
         registrar.playToClient(EditorDataPayload.TYPE, EditorDataPayload.STREAM_CODEC, EdenNetwork::handleEditorData);
         registrar.playToServer(SaveConfigPayload.TYPE, SaveConfigPayload.STREAM_CODEC, EdenNetwork::handleSaveConfig);
+        // Loot-injection tab of the difficulty editor: config rides along with EditorDataPayload; saves go
+        // through SaveLootConfigPayload and live-apply via a background datapack reload.
+        registrar.playToServer(SaveLootConfigPayload.TYPE, SaveLootConfigPayload.STREAM_CODEC, EdenNetwork::handleSaveLootConfig);
         // Launch pad (§3/§9/§15): server pushes the campaign snapshot + unlock rows, the client sends the
         // chosen expedition (difficulty + destination); the server re-validates before launching.
         registrar.playToClient(OpenLaunchPadPayload.TYPE, OpenLaunchPadPayload.STREAM_CODEC, EdenNetwork::handleOpenLaunchPad);
@@ -292,6 +295,66 @@ public class EdenNetwork {
     /** Keep a client-sent charge speed in a sane, non-negative range. */
     private static float clampSpeed(float v) {
         return Math.max(0.0f, Math.min(100.0f, v));
+    }
+
+    /**
+     * Server-side save of the loot-injection config: sanitise rules, clamp pool numbers, persist to
+     * {@code LootInjectionData}, then re-apply (background datapack reload when the content changed).
+     */
+    private static void handleSaveLootConfig(SaveLootConfigPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer sp) || sp.level().getServer() == null) {
+                return;
+            }
+            if (!sp.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) {
+                return;   // admin tool: server-side permission re-check
+            }
+            MinecraftServer server = sp.level().getServer();
+            com.srqingchen.eden.data.LootInjectionData config = com.srqingchen.eden.data.LootInjectionData.get(server);
+            LootPayloadBlock loot = payload.loot();
+            config.enabled = loot.enabled();
+            config.allNamespaces = loot.allNamespaces();
+            config.prefixes = splitRules(loot.prefixes());
+            config.exclusions = splitRules(loot.exclusions());
+            List<String> diffs = DifficultyConfigData.DIFFICULTIES;
+            for (int i = 0; i < diffs.size(); i++) {
+                String diff = diffs.get(i);
+                int base = i * com.srqingchen.eden.data.LootInjectionData.MAX_ITEMS;
+                int rMin = Math.max(0, Math.min(8, getI(loot.rolls(), i * 2, 1)));
+                int rMax = Math.max(rMin, Math.min(8, getI(loot.rolls(), i * 2 + 1, 2)));
+                List<com.srqingchen.eden.data.LootInjectionData.ItemEntry> items = new ArrayList<>();
+                for (int k = 0; k < com.srqingchen.eden.data.LootInjectionData.MAX_ITEMS; k++) {
+                    String id = getStr(loot.items(), base + k, "").trim();
+                    if (id.isEmpty()) {
+                        continue;
+                    }
+                    int weight = Math.max(0, Math.min(999, getI(loot.weights(), base + k, 1)));
+                    int mn = Math.max(1, Math.min(64, getI(loot.min(), base + k, 1)));
+                    int mx = Math.max(mn, Math.min(64, getI(loot.max(), base + k, 1)));
+                    float chance = Math.max(0.0f, Math.min(1.0f, getF(loot.chance(), base + k, 1.0f)));
+                    items.add(new com.srqingchen.eden.data.LootInjectionData.ItemEntry(id, weight, mn, mx, chance));
+                }
+                config.pools.put(diff, new com.srqingchen.eden.data.LootInjectionData.PoolConfig(rMin, rMax, items));
+            }
+            config.setDirty();
+            EdenProtocol.LOGGER.info("[Eden] loot-injection config updated by {}", sp.getName().getString());
+            com.srqingchen.eden.system.LootInjectionSystem.reapplyIfChanged(server);
+            EdenMessages.send(sp, Type.SUCCESS, "eden.msg.loot_saved");
+        });
+    }
+
+    /** Split a comma/Chinese-comma separated rule box into a clean, de-duplicated, non-empty list. */
+    private static List<String> splitRules(String joined) {
+        List<String> out = new ArrayList<>();
+        if (joined != null) {
+            for (String part : joined.split("[,，]")) {
+                String s = part.trim();
+                if (!s.isEmpty() && !out.contains(s)) {
+                    out.add(s);
+                }
+            }
+        }
+        return out;
     }
 
     private static float clamp01(float v) {

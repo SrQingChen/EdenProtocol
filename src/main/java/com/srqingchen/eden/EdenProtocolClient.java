@@ -42,9 +42,7 @@ public class EdenProtocolClient {
 
             @Override
             public void openEditor(EditorDataPayload payload) {
-                Minecraft.getInstance().setScreen(new DifficultyEditorScreen(payload.profiles(),
-                        payload.selected(), payload.charge(), payload.particle(), payload.density(),
-                        payload.quality(), payload.star()));
+                Minecraft.getInstance().setScreen(new DifficultyEditorScreen(payload));
             }
 
             @Override

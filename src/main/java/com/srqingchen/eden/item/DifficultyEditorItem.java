@@ -54,8 +54,43 @@ public class DifficultyEditorItem extends Item {
                     quality.addAll(e.qualityWeights());
                     star.addAll(e.starWeights());
                 }
+                // Loot-injection block (editor's 战利品 tab): global rules + flattened per-difficulty pools.
+                com.srqingchen.eden.data.LootInjectionData lootData =
+                        com.srqingchen.eden.data.LootInjectionData.get(server);
+                List<Integer> lootRolls = new ArrayList<>();
+                List<String> lootItems = new ArrayList<>();
+                List<Integer> lootWeights = new ArrayList<>();
+                List<Integer> lootMin = new ArrayList<>();
+                List<Integer> lootMax = new ArrayList<>();
+                List<Float> lootChance = new ArrayList<>();
+                for (String d : DifficultyConfigData.DIFFICULTIES) {
+                    com.srqingchen.eden.data.LootInjectionData.PoolConfig pool = lootData.poolFor(d);
+                    lootRolls.add(pool.rollsMin());
+                    lootRolls.add(pool.rollsMax());
+                    List<com.srqingchen.eden.data.LootInjectionData.ItemEntry> entries = new ArrayList<>(pool.items());
+                    for (int k = 0; k < com.srqingchen.eden.data.LootInjectionData.MAX_ITEMS; k++) {
+                        if (k < entries.size()) {
+                            com.srqingchen.eden.data.LootInjectionData.ItemEntry it = entries.get(k);
+                            lootItems.add(it.item());
+                            lootWeights.add(it.weight());
+                            lootMin.add(it.minCount());
+                            lootMax.add(it.maxCount());
+                            lootChance.add(it.chance());
+                        } else {
+                            lootItems.add("");
+                            lootWeights.add(1);
+                            lootMin.add(1);
+                            lootMax.add(1);
+                            lootChance.add(1.0f);
+                        }
+                    }
+                }
+                com.srqingchen.eden.network.LootPayloadBlock lootBlock = new com.srqingchen.eden.network.LootPayloadBlock(
+                        lootData.enabled, lootData.allNamespaces, String.join(",", lootData.prefixes),
+                        String.join(",", lootData.exclusions), lootRolls, lootItems, lootWeights,
+                        lootMin, lootMax, lootChance);
                 PacketDistributor.sendToPlayer(sp,
-                        new EditorDataPayload(profiles, selected, charge, particle, density, quality, star));
+                        new EditorDataPayload(profiles, selected, charge, particle, density, quality, star, lootBlock));
             }
         }
         return InteractionResult.SUCCESS;
