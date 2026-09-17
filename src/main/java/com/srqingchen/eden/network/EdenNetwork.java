@@ -54,7 +54,7 @@ public class EdenNetwork {
 
         void openChronicle(ChroniclePayload payload);
 
-        void openRiftAltar(OpenRiftAltarPayload payload);
+        void openLootTables(LootTablesPayload payload);
 
         void playCinematic(PlayCinematicPayload payload);
     }
@@ -88,6 +88,10 @@ public class EdenNetwork {
         // Loot-injection tab of the difficulty editor: config rides along with EditorDataPayload; saves go
         // through SaveLootConfigPayload and live-apply via a background datapack reload.
         registrar.playToServer(SaveLootConfigPayload.TYPE, SaveLootConfigPayload.STREAM_CODEC, EdenNetwork::handleSaveLootConfig);
+        // Per-table loot editor (user-feedback rework): list request/reply + one table's override save.
+        registrar.playToServer(RequestLootTablesPayload.TYPE, RequestLootTablesPayload.STREAM_CODEC, EdenNetwork::handleRequestLootTables);
+        registrar.playToClient(LootTablesPayload.TYPE, LootTablesPayload.STREAM_CODEC, EdenNetwork::handleLootTables);
+        registrar.playToServer(SaveTableLootPayload.TYPE, SaveTableLootPayload.STREAM_CODEC, EdenNetwork::handleSaveTableLoot);
         // Launch pad (§3/§9/§15): server pushes the campaign snapshot + unlock rows, the client sends the
         // chosen expedition (difficulty + destination); the server re-validates before launching.
         registrar.playToClient(OpenLaunchPadPayload.TYPE, OpenLaunchPadPayload.STREAM_CODEC, EdenNetwork::handleOpenLaunchPad);
@@ -97,9 +101,8 @@ public class EdenNetwork {
         registrar.playToServer(AdvanceVotePayload.TYPE, AdvanceVotePayload.STREAM_CODEC, EdenNetwork::handleAdvanceVote);
         // Chronicle wall (§13/§14): server pushes the campaign snapshot; the screen is read-only.
         registrar.playToClient(ChroniclePayload.TYPE, ChroniclePayload.STREAM_CODEC, EdenNetwork::handleChronicle);
-        // Rift altar (v2 card forge): open is client-bound, forge requests are server-bound and re-validated.
-        registrar.playToClient(OpenRiftAltarPayload.TYPE, OpenRiftAltarPayload.STREAM_CODEC, EdenNetwork::handleOpenRiftAltar);
-        registrar.playToServer(RiftForgePayload.TYPE, RiftForgePayload.STREAM_CODEC, EdenNetwork::handleRiftForge);
+        // Rift altar (v2 card forge): now a vanilla container menu (RiftAltarMenu via MenuProvider) -
+        // no custom payloads involved.
         // Cinematics (v3): server-triggered fullscreen videos, client-optional assets.
         registrar.playToClient(PlayCinematicPayload.TYPE, PlayCinematicPayload.STREAM_CODEC, EdenNetwork::handlePlayCinematic);
     }
@@ -185,26 +188,6 @@ public class EdenNetwork {
                 EdenMessages.send(sp, Type.SUCCESS, "eden.msg.entered_raid", payload.difficulty());
             } else {
                 EdenMessages.send(sp, Type.DANGER, "eden.msg.raid_dim_unavailable");
-            }
-        });
-    }
-
-    private static void handleOpenRiftAltar(OpenRiftAltarPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            if (EdenNetwork.clientHooks != null) {
-                EdenNetwork.clientHooks.openRiftAltar(payload);
-            }
-        });
-    }
-
-    private static void handleRiftForge(RiftForgePayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
-            if (context.player() instanceof ServerPlayer sp) {
-                if ("fuse".equals(payload.recipe())) {
-                    com.srqingchen.eden.system.RiftForge.fuse(sp, payload.slotA(), payload.slotB(), payload.slotC());
-                } else if ("ascend".equals(payload.recipe())) {
-                    com.srqingchen.eden.system.RiftForge.ascend(sp, payload.slotA(), payload.slotB());
-                }
             }
         });
     }
@@ -361,6 +344,130 @@ public class EdenNetwork {
             EdenProtocol.LOGGER.info("[Eden] loot-injection config updated by {}", sp.getName().getString());
             com.srqingchen.eden.system.LootInjectionSystem.reapplyIfChanged(server);
             EdenMessages.send(sp, Type.SUCCESS, "eden.msg.loot_saved");
+        });
+    }
+
+    /** Enumerate every chest loot table (vanilla + mods) with its override state and pools. */
+    private static void handleRequestLootTables(RequestLootTablesPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer sp) || sp.level().getServer() == null) {
+                return;
+            }
+            MinecraftServer server = sp.level().getServer();
+            var data = com.srqingchen.eden.data.LootInjectionData.get(server);
+            java.util.List<String> ids = new ArrayList<>();
+            java.util.List<Integer> states = new ArrayList<>();
+            java.util.List<String> hints = new ArrayList<>();
+            java.util.List<LootPayloadBlock> blocks = new ArrayList<>();
+            var reg = server.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.LOOT_TABLE);
+            for (net.minecraft.world.level.storage.loot.LootTable table : reg) {
+                if (table == net.minecraft.world.level.storage.loot.LootTable.EMPTY) {
+                    continue;
+                }
+                net.minecraft.resources.Identifier id = table.getLootTableId();
+                if (id == null) {
+                    continue;
+                }
+                boolean chest = table.getParamSet() == net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST
+                        || id.getPath().startsWith("chests/");
+                if (!chest) {
+                    continue;
+                }
+                String key = id.toString();
+                ids.add(key);
+                states.add(data.tableState(key));
+                hints.add(com.srqingchen.eden.system.LootTableHints.hintKey(key));
+                blocks.add(blockOf(data, key));
+            }
+            PacketDistributor.sendToPlayer(sp, new LootTablesPayload(ids, states, hints, blocks));
+        });
+    }
+
+    /** Flatten one table's effective pools (its override when set, else the global ones). */
+    private static LootPayloadBlock blockOf(com.srqingchen.eden.data.LootInjectionData data, String tableId) {
+        java.util.List<Integer> rolls = new ArrayList<>();
+        java.util.List<String> items = new ArrayList<>();
+        java.util.List<Integer> weight = new ArrayList<>();
+        java.util.List<Integer> min = new ArrayList<>();
+        java.util.List<Integer> max = new ArrayList<>();
+        java.util.List<Float> chance = new ArrayList<>();
+        for (String diff : DifficultyConfigData.DIFFICULTIES) {
+            var pool = data.overridePoolFor(tableId, diff);
+            rolls.add(pool.rollsMin());
+            rolls.add(pool.rollsMax());
+            var entries = new ArrayList<>(pool.items());
+            for (int k = 0; k < com.srqingchen.eden.data.LootInjectionData.MAX_ITEMS; k++) {
+                if (k < entries.size()) {
+                    var it = entries.get(k);
+                    items.add(it.item());
+                    weight.add(it.weight());
+                    min.add(it.minCount());
+                    max.add(it.maxCount());
+                    chance.add(it.chance());
+                } else {
+                    items.add("");
+                    weight.add(1);
+                    min.add(1);
+                    max.add(1);
+                    chance.add(1.0f);
+                }
+            }
+        }
+        return new LootPayloadBlock(data.enabled, data.allNamespaces, "", "", rolls, items, weight, min, max, chance);
+    }
+
+    /** Save one table's explicit override; live-applies via the reload like every loot save. */
+    private static void handleSaveTableLoot(SaveTableLootPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof ServerPlayer sp) || sp.level().getServer() == null) {
+                return;
+            }
+            if (!sp.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) {
+                return;   // admin tool: server-side permission re-check
+            }
+            MinecraftServer server = sp.level().getServer();
+            var data = com.srqingchen.eden.data.LootInjectionData.get(server);
+            if (payload.mode() == 0) {
+                data.tables.remove(payload.tableId());
+            } else {
+                java.util.Map<String, com.srqingchen.eden.data.LootInjectionData.PoolConfig> pools = new java.util.LinkedHashMap<>();
+                if (payload.mode() == 1) {
+                    for (int i = 0; i < DifficultyConfigData.DIFFICULTIES.size(); i++) {
+                        String diff = DifficultyConfigData.DIFFICULTIES.get(i);
+                        int base = i * com.srqingchen.eden.data.LootInjectionData.MAX_ITEMS;
+                        int rMin = Math.max(0, Math.min(8, getI(payload.rolls(), i * 2, 1)));
+                        int rMax = Math.max(rMin, Math.min(8, getI(payload.rolls(), i * 2 + 1, 2)));
+                        java.util.List<com.srqingchen.eden.data.LootInjectionData.ItemEntry> items = new ArrayList<>();
+                        for (int k = 0; k < com.srqingchen.eden.data.LootInjectionData.MAX_ITEMS; k++) {
+                            String id = getStr(payload.items(), base + k, "").trim();
+                            if (id.isEmpty()) {
+                                continue;
+                            }
+                            items.add(new com.srqingchen.eden.data.LootInjectionData.ItemEntry(id,
+                                    Math.max(0, Math.min(999, getI(payload.weights(), base + k, 1))),
+                                    Math.max(1, Math.min(64, getI(payload.min(), base + k, 1))),
+                                    Math.max(1, Math.min(64, getI(payload.max(), base + k, 1))),
+                                    Math.max(0f, Math.min(1f, getF(payload.chance(), base + k, 1f)))));
+                        }
+                        pools.put(diff, new com.srqingchen.eden.data.LootInjectionData.PoolConfig(rMin, rMax, items));
+                    }
+                }
+                data.tables.put(payload.tableId(),
+                        new com.srqingchen.eden.data.LootInjectionData.TableOverride(payload.mode() == 1, pools));
+            }
+            data.setDirty();
+            EdenProtocol.LOGGER.info("[Eden] loot override for {} updated by {}",
+                    payload.tableId(), sp.getName().getString());
+            com.srqingchen.eden.system.LootInjectionSystem.reapplyIfChanged(server);
+            EdenMessages.send(sp, Type.SUCCESS, "eden.msg.loot_saved");
+        });
+    }
+
+    private static void handleLootTables(LootTablesPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (clientHooks != null) {
+                clientHooks.openLootTables(payload);
+            }
         });
     }
 

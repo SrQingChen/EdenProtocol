@@ -56,13 +56,14 @@ public class EdenProtocolClient {
             }
 
             @Override
-            public void openRiftAltar(com.srqingchen.eden.network.OpenRiftAltarPayload payload) {
-                Minecraft.getInstance().setScreen(new com.srqingchen.eden.client.gui.RiftAltarScreen(payload.balance()));
+            public void playCinematic(com.srqingchen.eden.network.PlayCinematicPayload payload) {
+                com.srqingchen.eden.client.gui.CinematicScreen.open(payload.video(), payload.sound());
             }
 
             @Override
-            public void playCinematic(com.srqingchen.eden.network.PlayCinematicPayload payload) {
-                com.srqingchen.eden.client.gui.CinematicScreen.open(payload.video(), payload.sound());
+            public void openLootTables(com.srqingchen.eden.network.LootTablesPayload payload) {
+                Minecraft.getInstance().setScreen(new com.srqingchen.eden.client.gui.LootTableListScreen(
+                        payload, Minecraft.getInstance().screen));
             }
         };
 

@@ -225,16 +225,15 @@ public class TalentScreen extends Screen {
 
         g.enableScissor(vpLeft(), vpTop(), vpRight(), vpBottom());
 
-        // connectors
+        // connectors: direct edge-to-edge lines (elbow links used to run under other stars and
+        // read as broken prerequisites - a trimmed straight line keeps every relation visible).
         for (NV nv : this.views) {
             for (String pre : nv.node.prereqs()) {
                 NV p = this.byId.get(pre);
                 if (p == null) continue;
                 boolean lit = ClientTalentData.rankOf(this.selectedTree, pre) > 0
                         && ClientTalentData.rankOf(this.selectedTree, nv.node.id()) > 0;
-                int col = lit ? COL_LINE_LIT : COL_LINE_DIM;
-                hline(g, p.cx, nv.cx, p.cy, col);
-                vline(g, nv.cx, p.cy, nv.cy, col);
+                linkLine(g, p, nv, lit ? COL_LINE_LIT : COL_LINE_DIM);
             }
         }
 
@@ -361,6 +360,24 @@ public class TalentScreen extends Screen {
         String stKey = st == 3 ? "eden.talent.state.unlocked" : st == 2 ? "eden.talent.state.available"
                 : st == 1 ? "eden.talent.state.poor" : "eden.talent.state.locked";
         lines.add(Component.translatable(stKey).getString());
+        // Prerequisite names (only when still relevant) - the map lines show the shape, this names it.
+        if (st != 3 && !n.prereqs().isEmpty()) {
+            StringBuilder pres = new StringBuilder();
+            for (String pre : n.prereqs()) {
+                TalentNode pn = TalentNodes.byId(pre);
+                if (pn == null) {
+                    continue;
+                }
+                if (pres.length() > 0) {
+                    pres.append("、");
+                }
+                boolean done = ClientTalentData.rankOf(this.selectedTree, pre) > 0;
+                pres.append(done ? "✓" : "○").append(Component.translatable(pn.nameKey()).getString());
+            }
+            if (pres.length() > 0) {
+                lines.add(Component.translatable("eden.talent.prereqs", pres.toString()).getString());
+            }
+        }
 
         int w = 0;
         for (String s : lines) w = Math.max(w, this.font.width(s));
@@ -384,6 +401,40 @@ public class TalentScreen extends Screen {
     }
 
     // ---------- draw helpers (fill-based; avoid outline's x/y/w/h signature) ----------
+
+    /** Straight connector between two stars, trimmed to their edges so it never hides under a node. */
+    private static void linkLine(GuiGraphicsExtractor g, NV from, NV to, int col) {
+        double dx = to.cx - from.cx, dy = to.cy - from.cy;
+        double len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 1.0) {
+            return;
+        }
+        double ux = dx / len, uy = dy / len;
+        int x0 = (int) Math.round(from.cx + ux * (from.r + 2));
+        int y0 = (int) Math.round(from.cy + uy * (from.r + 2));
+        int x1 = (int) Math.round(to.cx - ux * (to.r + 2));
+        int y1 = (int) Math.round(to.cy - uy * (to.r + 2));
+        // Bresenham over 1px fills (same idiom as the star rasterizer).
+        int x = x0, y = y0;
+        int sx = x1 > x0 ? 1 : -1, sy = y1 > y0 ? 1 : -1;
+        int adx = Math.abs(x1 - x0), ady = -Math.abs(y1 - y0);
+        int err = adx + ady;
+        while (true) {
+            g.fill(x, y, x + 1, y + 1, col);
+            if (x == x1 && y == y1) {
+                break;
+            }
+            int e2 = 2 * err;
+            if (e2 >= ady) {
+                err += ady;
+                x += sx;
+            }
+            if (e2 <= adx) {
+                err += adx;
+                y += sy;
+            }
+        }
+    }
 
     private static void hline(GuiGraphicsExtractor g, int x1, int x2, int y, int col) {
         int a = Math.min(x1, x2), b = Math.max(x1, x2);

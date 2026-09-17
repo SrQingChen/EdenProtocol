@@ -54,19 +54,35 @@ public class LootInjectionData extends SavedData {
         ).apply(inst, PoolConfig::new));
     }
 
+    /**
+     * One table's EXPLICIT override (0.3.4 逐表编辑): a forced on/off switch that bypasses the
+     * global prefix rules, plus optional per-difficulty pools replacing the global ones. An empty
+     * pools map falls back to the global per-difficulty pools for the tables that are only
+     * force-enabled/disabled.
+     */
+    public record TableOverride(boolean enabled, Map<String, PoolConfig> pools) {
+        public static final Codec<TableOverride> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+                Codec.BOOL.optionalFieldOf("enabled", true).forGetter(TableOverride::enabled),
+                Codec.unboundedMap(Codec.STRING, PoolConfig.CODEC).optionalFieldOf("pools", Map.of())
+                        .forGetter(TableOverride::pools)
+        ).apply(inst, TableOverride::new));
+    }
+
     public static final Codec<LootInjectionData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.BOOL.optionalFieldOf("enabled", true).forGetter(d -> d.enabled),
             Codec.list(Codec.STRING).optionalFieldOf("prefixes", List.of("chests/")).forGetter(d -> d.prefixes),
             Codec.list(Codec.STRING).optionalFieldOf("exclusions", List.of()).forGetter(d -> d.exclusions),
             Codec.BOOL.optionalFieldOf("all_namespaces", true).forGetter(d -> d.allNamespaces),
-            Codec.unboundedMap(Codec.STRING, PoolConfig.CODEC).optionalFieldOf("pools", Map.of()).forGetter(d -> d.pools)
-    ).apply(inst, (enabled, prefixes, exclusions, allNs, pools) -> {
+            Codec.unboundedMap(Codec.STRING, PoolConfig.CODEC).optionalFieldOf("pools", Map.of()).forGetter(d -> d.pools),
+            Codec.unboundedMap(Codec.STRING, TableOverride.CODEC).optionalFieldOf("tables", Map.of()).forGetter(d -> d.tables)
+    ).apply(inst, (enabled, prefixes, exclusions, allNs, pools, tables) -> {
         LootInjectionData data = new LootInjectionData();
         data.enabled = enabled;
         data.prefixes = new ArrayList<>(prefixes);
         data.exclusions = new ArrayList<>(exclusions);
         data.allNamespaces = allNs;
         data.pools.putAll(pools);
+        data.tables.putAll(tables);
         return data;
     }));
 
@@ -82,6 +98,8 @@ public class LootInjectionData extends SavedData {
     public List<String> exclusions = new ArrayList<>();
     public boolean allNamespaces = true;
     public final Map<String, PoolConfig> pools = new LinkedHashMap<>();
+    /** Per-table explicit overrides (id -> forced state + optional custom pools). */
+    public final Map<String, TableOverride> tables = new LinkedHashMap<>();
 
     public LootInjectionData() {
         for (String d : DifficultyConfigData.DIFFICULTIES) {
@@ -159,6 +177,21 @@ public class LootInjectionData extends SavedData {
         return data != null ? data : DEFAULTS;
     }
 
+    /** Tri-state of one table for the list UI: 0 follow global rules, 1 forced on, 2 forced off. */
+    public int tableState(String tableId) {
+        TableOverride o = this.tables.get(tableId);
+        return o == null ? 0 : (o.enabled() ? 1 : 2);
+    }
+
+    /** The pools a table with an explicit override injects (its own if set, else the global ones). */
+    public PoolConfig overridePoolFor(String tableId, String difficulty) {
+        TableOverride o = this.tables.get(tableId);
+        if (o != null && o.pools().containsKey(difficulty)) {
+            return o.pools().get(difficulty);
+        }
+        return poolFor(difficulty);
+    }
+
     /** Content signature used to decide whether tables need re-injecting after a config change. */
     public static String signature(LootInjectionData d) {
         StringBuilder sb = new StringBuilder(d.enabled ? "1" : "0").append('|')
@@ -171,6 +204,21 @@ public class LootInjectionData extends SavedData {
             for (ItemEntry e : p.items()) {
                 sb.append(';').append(e.item()).append(',').append(e.weight()).append(',')
                         .append(e.minCount()).append(',').append(e.maxCount()).append(',').append(e.chance());
+            }
+        }
+        for (Map.Entry<String, TableOverride> e : d.tables.entrySet()) {
+            TableOverride o = e.getValue();
+            sb.append('|').append(e.getKey()).append(':').append(o.enabled() ? '1' : '0');
+            for (String diff : DifficultyConfigData.DIFFICULTIES) {
+                PoolConfig p = o.pools().get(diff);
+                if (p == null) {
+                    continue;
+                }
+                sb.append(';').append(diff).append(',').append(p.rollsMin()).append('-').append(p.rollsMax());
+                for (ItemEntry it : p.items()) {
+                    sb.append(',').append(it.item()).append('/').append(it.weight()).append('/')
+                            .append(it.minCount()).append('/').append(it.maxCount()).append('/').append(it.chance());
+                }
             }
         }
         return sb.toString();

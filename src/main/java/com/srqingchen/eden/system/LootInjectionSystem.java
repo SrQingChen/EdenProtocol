@@ -68,15 +68,26 @@ public final class LootInjectionSystem {
 
     // ---------- event wiring (game bus, see EdenProtocol ctor) ----------
 
-    /** Inject matching tables as they load. Runs on a datapack-load thread: touch ONLY the snapshot. */
+    /** Inject matching tables as they load. Runs on a datapack-load thread: touch ONLY the snapshot.
+     * A table with an EXPLICIT override wins over the global rules: forced-on injects even off the
+     * prefix path (using its own pools when set), forced-off never injects even on the prefix path. */
     public static void onLootTableLoad(LootTableLoadEvent event) {
         LootInjectionData cfg = snapshot;
         lastLoadedSignature = LootInjectionData.signature(cfg);
-        if (!cfg.enabled || !cfg.matches(event.getName())) {
+        String id = event.getName().toString();
+        var override = cfg.tables.get(id);
+        boolean ownTable = EdenProtocol.MODID.equals(event.getName().getNamespace());
+        boolean inject;
+        if (override != null) {
+            inject = override.enabled() && cfg.enabled && !ownTable;
+        } else {
+            inject = cfg.matches(event.getName());
+        }
+        if (!inject) {
             return;
         }
         for (String difficulty : DifficultyConfigData.DIFFICULTIES) {
-            LootPool pool = buildPool(difficulty, cfg.poolFor(difficulty));
+            LootPool pool = buildPool(difficulty, cfg.overridePoolFor(id, difficulty));
             if (pool != null) {
                 try {
                     event.getTable().addPool(pool);

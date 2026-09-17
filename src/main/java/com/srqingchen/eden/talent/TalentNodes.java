@@ -58,6 +58,11 @@ public final class TalentNodes {
         return Collections.unmodifiableCollection(NODES.values());
     }
 
+    /** Resolve a node by id across every tree (null when unknown - defensive against stale saves). */
+    public static TalentNode byId(String id) {
+        return NODES.get(id);
+    }
+
     /** All nodes of one tree ({@code ""} = universal, else a class id), in registration order. */
     public static List<TalentNode> ofTree(String tree) {
         List<TalentNode> out = new ArrayList<>();

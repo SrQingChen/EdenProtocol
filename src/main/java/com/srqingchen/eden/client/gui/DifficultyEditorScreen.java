@@ -112,7 +112,8 @@ public class DifficultyEditorScreen extends Screen {
                 .bounds(RIGHT_X, 52, 232, 18).build();
         addRenderableWidget(this.profileBtn);
         this.lootBtn = Button.builder(Component.translatable("eden.editor.loot.button"),
-                        btn -> Minecraft.getInstance().setScreen(new LootEditorScreen(this.loot, this)))
+                        btn -> ClientPacketDistributor.sendToServer(
+                                new com.srqingchen.eden.network.RequestLootTablesPayload()))
                 .bounds(LEFT_X, 52 + DifficultyConfigData.DIFFICULTIES.size() * 22 + 6, LEFT_W, 18).build();
         addRenderableWidget(this.lootBtn);
         for (int r = 0; r < 5; r++) {

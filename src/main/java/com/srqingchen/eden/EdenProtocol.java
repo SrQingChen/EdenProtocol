@@ -68,6 +68,8 @@ public class EdenProtocol {
         com.srqingchen.eden.registry.EdenSounds.SOUNDS.register(modEventBus);
         // Custom loot conditions for the chest-injection system (eden:raid_dimension / eden:raid_difficulty).
         com.srqingchen.eden.system.LootInjectionSystem.Conditions.LOOT_CONDITIONS.register(modEventBus);
+        // Custom container menus (rift altar card forge).
+        com.srqingchen.eden.registry.EdenMenus.MENUS.register(modEventBus);
 
         // Game-bus listeners for game (NeoForge) events, wired explicitly via addListener(method refs).
         // NOTE: do NOT call NeoForge.EVENT_BUS.register(this) here - this class has no @SubscribeEvent

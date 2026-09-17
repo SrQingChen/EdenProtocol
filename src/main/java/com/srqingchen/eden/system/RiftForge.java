@@ -64,19 +64,49 @@ public final class RiftForge {
         b.shrink(1);
         c.shrink(1);
         RandomSource rand = p.level().getRandom();
-        int tier = PURE.indexOf(q);
-        ItemStack result;
-        if (tier >= 0 && tier < PURE.size() - 1) {
-            result = rollOfQuality(rand, PURE.get(tier + 1), 1 + rand.nextInt(2));
-        } else {
-            // Top tier in: a legendary that carries the best source star +1.
-            result = rollOfQuality(rand, PURE.get(PURE.size() - 1), Math.min(STAR_MAX, bestStar + 1));
-        }
+        ItemStack result = rollFuse(a, b, c, rand);
         if (!result.isEmpty() && !p.getInventory().add(result)) {
             p.drop(result, false);
         }
         EdenMessages.overlay(p, Type.SUCCESS, "eden.forge.msg.fused", result.getHoverName());
         return true;
+    }
+
+    /**
+     * Menu-side fuse roll: validate the trio (three same-quality PURE cards) and roll the exact
+     * result the player will get - EMPTY when the recipe is not ready. Shared by the old payload
+     * path and the vanilla-style menu's live preview.
+     */
+    public static ItemStack rollFuse(ItemStack a, ItemStack b, ItemStack c, RandomSource rand) {
+        if (!(a.getItem() instanceof CardItem ca) || !(b.getItem() instanceof CardItem cb)
+                || !(c.getItem() instanceof CardItem cc)) {
+            return ItemStack.EMPTY;
+        }
+        CardQuality q = ca.quality();
+        if (q == CardQuality.CURSE || cb.quality() != q || cc.quality() != q) {
+            return ItemStack.EMPTY;
+        }
+        int bestStar = Math.max(CardItem.starOf(a), Math.max(CardItem.starOf(b), CardItem.starOf(c)));
+        int tier = PURE.indexOf(q);
+        if (tier >= 0 && tier < PURE.size() - 1) {
+            return rollOfQuality(rand, PURE.get(tier + 1), 1 + rand.nextInt(2));
+        }
+        // Top tier in: a legendary that carries the best source star +1.
+        return rollOfQuality(rand, PURE.get(PURE.size() - 1), Math.min(STAR_MAX, bestStar + 1));
+    }
+
+    /** Menu-side ascend roll: valid card + boss material -> the same card at +1 star (max 5). */
+    public static ItemStack rollAscend(ItemStack card, ItemStack material) {
+        if (!(card.getItem() instanceof CardItem) || !isBossMaterial(material.getItem())) {
+            return ItemStack.EMPTY;
+        }
+        int star = CardItem.starOf(card);
+        if (star >= STAR_MAX) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack result = card.copyWithCount(1);
+        result.set(EdenDataComponents.CARD_STAR.get(), star + 1);
+        return result;
     }
 
     /** ASCEND: one boss material + supply points -> +1 star on one card (max 5). */

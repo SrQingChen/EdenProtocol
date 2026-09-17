@@ -29,8 +29,9 @@ import java.util.Locale;
 @OnlyIn(Dist.CLIENT)
 public class LootEditorScreen extends Screen {
 
-    /** Curated cycle order for item slots: mod supplies first, then a few vanilla staples. */
-    private static final String[] CATALOG = {
+    /** Curated cycle order for item slots: mod supplies first, then a few vanilla staples.
+     * Package-visible: the per-table editor shares the catalog. */
+    static final String[] CATALOG = {
             "eden:essence", "eden:taint_crystal", "eden:tainted_ore", "eden:tainted_ingot",
             "eden:salvage_tech", "eden:salvage_artifact", "eden:eden_cell", "eden:card_pack",
             "eden:insurance", "eden:locator", "eden:purifier", "eden:relic_shard",
@@ -59,6 +60,45 @@ public class LootEditorScreen extends Screen {
 
         public static State fromPayload(EditorDataPayload p) {
             return fromBlock(p.loot());
+        }
+
+        /** Defaults straight from the common config class (used when the list screen opens the
+         * global-rules screen without an editor payload in hand). */
+        public static State freshDefaults() {
+            LootInjectionData d = new LootInjectionData();
+            List<Integer> rolls = new ArrayList<>();
+            List<String> items = new ArrayList<>();
+            List<Integer> weight = new ArrayList<>();
+            List<Integer> min = new ArrayList<>();
+            List<Integer> max = new ArrayList<>();
+            List<Float> chance = new ArrayList<>();
+            for (String diff : DifficultyConfigData.DIFFICULTIES) {
+                var pool = d.poolFor(diff);
+                rolls.add(pool.rollsMin());
+                rolls.add(pool.rollsMax());
+                for (var it : pool.items()) {
+                    items.add(it.item());
+                    weight.add(it.weight());
+                    min.add(it.minCount());
+                    max.add(it.maxCount());
+                    chance.add(it.chance());
+                }
+                for (int k = pool.items().size(); k < LootInjectionData.MAX_ITEMS; k++) {
+                    items.add("");
+                    weight.add(1);
+                    min.add(1);
+                    max.add(1);
+                    chance.add(1.0f);
+                }
+            }
+            return fromBlock(new com.srqingchen.eden.network.LootPayloadBlock(
+                    d.enabled, d.allNamespaces, String.join(",", d.prefixes),
+                    String.join(",", d.exclusions), rolls, items, weight, min, max, chance));
+        }
+
+        /** The pools flattened for a per-table save (global rule fields are ignored there). */
+        public com.srqingchen.eden.network.LootPayloadBlock toBlockForTable() {
+            return toPayload().loot();
         }
 
         public static State fromBlock(com.srqingchen.eden.network.LootPayloadBlock b) {
