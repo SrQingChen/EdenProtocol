@@ -19,6 +19,10 @@
     {
       "type": "patchouli:text",
       "text": "eden.book.e.season.p4"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "eden.book.e.season.p5"
     }
   ]
 }

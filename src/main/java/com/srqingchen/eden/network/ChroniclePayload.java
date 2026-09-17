@@ -22,7 +22,9 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                                int coresDestroyed, int dragonsSlain,
                                List<String> highlightKeys, List<String> highlightPlayers, List<Integer> highlightValues,
                                int seasonIndex, int contractsDone, int contractsTotal,
-                               boolean advanceReady, boolean voteActive, int voteYes, int voteNeed)
+                               boolean advanceReady, boolean voteActive, int voteYes, int voteNeed,
+                               float meterPurity, float meterSymbiosis, float meterArchive,
+                               int pagesPurity, int pagesSymbiosis, int pagesArchive)
         implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<ChroniclePayload> TYPE =
@@ -54,9 +56,16 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     boolean voteActive = buf.readBoolean();
                     int voteYes = buf.readVarInt();
                     int voteNeed = buf.readVarInt();
+                    float mPurity = buf.readFloat();
+                    float mSymbiosis = buf.readFloat();
+                    float mArchive = buf.readFloat();
+                    int pPurity = buf.readVarInt();
+                    int pSymbiosis = buf.readVarInt();
+                    int pArchive = buf.readVarInt();
                     return new ChroniclePayload(pollution, stage, paradise, supply, raids, extracts,
                             cores, dragons, keys, players, values,
-                            seasonIndex, contractsDone, contractsTotal, advanceReady, voteActive, voteYes, voteNeed);
+                            seasonIndex, contractsDone, contractsTotal, advanceReady, voteActive, voteYes, voteNeed,
+                            mPurity, mSymbiosis, mArchive, pPurity, pSymbiosis, pArchive);
                 }
 
                 @Override
@@ -82,6 +91,12 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     buf.writeBoolean(p.voteActive);
                     buf.writeVarInt(p.voteYes);
                     buf.writeVarInt(p.voteNeed);
+                    buf.writeFloat(p.meterPurity);
+                    buf.writeFloat(p.meterSymbiosis);
+                    buf.writeFloat(p.meterArchive);
+                    buf.writeVarInt(p.pagesPurity);
+                    buf.writeVarInt(p.pagesSymbiosis);
+                    buf.writeVarInt(p.pagesArchive);
                 }
             };
 

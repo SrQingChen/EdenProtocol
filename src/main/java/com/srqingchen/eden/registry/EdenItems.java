@@ -51,6 +51,12 @@ public class EdenItems {
     public static final DeferredItem<Item> SAMPLE_FAUNA = ITEMS.registerSimpleItem("sample_fauna", p -> p.stacksTo(64));
     public static final DeferredItem<Item> SAMPLE_MINERAL = ITEMS.registerSimpleItem("sample_mineral", p -> p.stacksTo(64));
     public static final DeferredItem<Item> RELIC_SHARD = ITEMS.registerSimpleItem("relic_shard", p -> p.stacksTo(64));
+
+    // ---------- S1 矿洞季:《三位起草人》残片 (批C) ----------
+
+    /** 残片（肃/融/铭 ×6 页，身份在 eden:fragment 组件里；右键解读）。 */
+    public static final DeferredItem<com.srqingchen.eden.item.FragmentItem> FRAGMENT =
+            ITEMS.registerItem("fragment", p -> new com.srqingchen.eden.item.FragmentItem(p.stacksTo(16)));
     public static final DeferredItem<Item> SALVAGE_TECH = ITEMS.registerSimpleItem("salvage_tech", p -> p.stacksTo(64));
     public static final DeferredItem<Item> SALVAGE_ARTIFACT = ITEMS.registerSimpleItem("salvage_artifact", p -> p.stacksTo(16));
 

@@ -41,6 +41,7 @@ public class EdenCreativeTabs {
                         output.accept(EdenItems.SAMPLE_FAUNA.get());
                         output.accept(EdenItems.SAMPLE_MINERAL.get());
                         output.accept(EdenItems.RELIC_SHARD.get());
+                        output.accept(EdenItems.FRAGMENT.get());
                         output.accept(EdenItems.SALVAGE_TECH.get());
                         output.accept(EdenItems.SALVAGE_ARTIFACT.get());
                         output.accept(EdenItems.INSURANCE.get());

@@ -213,6 +213,7 @@ public final class PollutionCoreSystem {
         if (server != null) {
             CampaignData campaign = CampaignData.get(server);
             campaign.addCoreDestroyed();
+            campaign.addProtocolPurity(2.0f);   // 三值温度计 (批C)
             CampaignSystem.reducePollution(server, POLLUTION_PER_CORE, sp,
                     "eden.chronicle.entry.core", campaign.coresDestroyed());
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {

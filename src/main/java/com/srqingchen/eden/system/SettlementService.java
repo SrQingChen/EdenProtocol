@@ -67,6 +67,20 @@ public class SettlementService {
         applyExtractionBonuses(player, earned);
         EdenMessages.send(player, Type.SUCCESS, "eden.msg.settled", earned, data.getSupplyPoints());
         com.srqingchen.eden.season.SeasonSystem.onSuccessfulExtract(player, earned);
+        // 三值温度计 (批C 共生值): HOW the run was carried, not whether it succeeded.
+        var run = com.srqingchen.eden.season.SeasonSystem.run(player);
+        if (CurioCards.anyEquipped(player, c -> c.quality() == com.srqingchen.eden.item.CardQuality.CURSE)) {
+            data.addProtocolSymbiosis(2.0f);   // rode a curse card home
+        }
+        if (run.purgeKills == 0) {
+            data.addProtocolSymbiosis(2.0f);   // spared the ecology
+        }
+        if (run.taintedMined == 0) {
+            data.addProtocolSymbiosis(1.0f);   // clean hands
+        }
+        if (run.visitedOasis) {
+            data.addProtocolSymbiosis(1.0f);   // guest of the oasis
+        }
         return earned;
     }
 

@@ -44,6 +44,7 @@ public class ChronicleWallBlock extends Block {
             return InteractionResult.PASS;
         }
         CampaignData data = CampaignData.get(level.getServer());
+        data.addProtocolArchive(0.5f);   // 三值温度计 (批C 存档值): consulting the record feeds it
         List<String> highlightKeys = new ArrayList<>();
         List<String> highlightPlayers = new ArrayList<>();
         List<Integer> highlightValues = new ArrayList<>();
@@ -61,7 +62,9 @@ public class ChronicleWallBlock extends Block {
                 com.srqingchen.eden.season.SeasonSystem.canAdvance(level.getServer()),
                 com.srqingchen.eden.season.SeasonSystem.voteState(level.getServer())[0],
                 com.srqingchen.eden.season.SeasonSystem.voteYesCount(),
-                level.getServer().getPlayerList().getPlayerCount() / 2 + 1));
+                level.getServer().getPlayerList().getPlayerCount() / 2 + 1,
+                data.protocolPurity(), data.protocolSymbiosis(), data.protocolArchive(),
+                data.pagesFound("purity"), data.pagesFound("symbiosis"), data.pagesFound("archive")));
         return InteractionResult.SUCCESS;
     }
 }

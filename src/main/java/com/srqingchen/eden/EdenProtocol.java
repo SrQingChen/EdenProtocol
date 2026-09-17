@@ -157,6 +157,9 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onServerTick);
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onEntityJoinLevel);
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onBlockBreak);
+        // S1 批C 剧情层: fragment pools in structure chests + glow-berry/deepslate seams for 铭.
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FragmentSystem::onLootTableLoad);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FragmentSystem::onBlockBreak);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, EdenConfig.SPEC);
         modContainer.registerConfig(ModConfig.Type.CLIENT, EdenClientConfig.SPEC);

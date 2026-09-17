@@ -63,6 +63,10 @@ public class ScannerItem extends Item {
             return InteractionResult.PASS;
         }
         scan(raid, sp, stack);
+        if (raid.getServer() != null) {
+            // 三值温度计 (批C 存档值): every scan feeds the archive.
+            com.srqingchen.eden.data.CampaignData.get(raid.getServer()).addProtocolArchive(0.2f);
+        }
         boolean insight = CurioCards.isEquipped(sp, (CardItem) EdenItems.CARD_INSIGHT.get());
         sp.getCooldowns().addCooldown(stack, insight ? COOLDOWN_TICKS / 2 : COOLDOWN_TICKS);
         return InteractionResult.CONSUME;

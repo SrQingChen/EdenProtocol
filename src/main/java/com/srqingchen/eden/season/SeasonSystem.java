@@ -64,6 +64,10 @@ public final class SeasonSystem {
         public int minedOres;
         public int purgeKills;
         public int lodgeTicks;
+        /** 批C temperature feeding: tainted blocks mined this run (symbiosis "clean hands" check). */
+        public int taintedMined;
+        /** 批C: visited the hope oasis at least once this run. */
+        public boolean visitedOasis;
     }
 
     private static final java.util.Map<java.util.UUID, Run> RUNS = new java.util.HashMap<>();

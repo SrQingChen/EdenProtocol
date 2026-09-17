@@ -36,17 +36,28 @@ public final class SeasonTracker {
             return;
         }
         var r = SeasonSystem.run(sp);
+        var state = event.getState();
+        // 三值温度计 feeding (批C 共生值): count tainted-block mining regardless of carried contract.
+        if (SeasonSystem.inRaid(sp) && isTainted(state)) {
+            r.taintedMined++;
+        }
         if (r.contract == null || r.contract.goal() != com.srqingchen.eden.season.SeasonSystem.Goal.MINE
                 || !SeasonSystem.inRaid(sp) || sp.getBlockY() >= 0) {
             return;
         }
-        var state = event.getState();
         for (net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> tag : ORE_TAGS) {
             if (state.is(tag)) {
                 r.minedOres++;
                 break;
             }
         }
+    }
+
+    private static boolean isTainted(net.minecraft.world.level.block.state.BlockState state) {
+        return state.is(com.srqingchen.eden.registry.EdenBlocks.TAINTED_STONE.get())
+                || state.is(com.srqingchen.eden.registry.EdenBlocks.TAINTED_SOIL.get())
+                || state.is(com.srqingchen.eden.registry.EdenBlocks.TAINTED_GRASS.get())
+                || state.is(com.srqingchen.eden.registry.EdenBlocks.TAINTED_COBBLESTONE.get());
     }
 
     public static void onPlayerTick(PlayerTickEvent.Post event) {

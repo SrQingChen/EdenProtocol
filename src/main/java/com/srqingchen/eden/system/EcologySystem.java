@@ -362,6 +362,10 @@ public final class EcologySystem {
     private static void tickRainEffects(ServerLevel raid, RandomSource rand) {
         for (ServerPlayer sp : raid.players()) {
             if (!raid.canSeeSky(sp.blockPosition())) {
+                // 浊雨守序 (批C): honouring the storm protocol quietly leans the meter toward 肃.
+                if (raid.getServer() != null && sp.getData(com.srqingchen.eden.registry.EdenAttachments.RAID_STATE).inRaid) {
+                    com.srqingchen.eden.data.CampaignData.get(raid.getServer()).addProtocolPurity(0.02f);
+                }
                 continue;   // indoors / underground is safe - routing, not taxing
             }
             sp.addEffect(new MobEffectInstance(com.srqingchen.eden.registry.EdenEffects.POLLUTION, 100, 0, true, true));
@@ -398,6 +402,7 @@ public final class EcologySystem {
         MinecraftServer server = raid.getServer();
         CampaignSystem.reducePollution(server, POLLUTION_PER_BOSS, killer,
                 "eden.chronicle.entry.eco_boss", 1);
+        com.srqingchen.eden.data.CampaignData.get(server).addProtocolPurity(2.0f);   // 批C
     }
 
     public static void onLivingDrops(LivingDropsEvent event) {

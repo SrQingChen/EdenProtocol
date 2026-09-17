@@ -69,7 +69,8 @@ public final class TipsSystem {
             new Tip("eden.tip.sludge", false),       // v2: creeping sludge hazard
             new Tip("eden.tip.eco_boss", true),      // v2: ecology lairs + altar fuel
             new Tip("eden.tip.rift_altar", false),   // v2: card forge
-            new Tip("eden.tip.acid_rain", true)      // v2: tainted rain on high risk
+            new Tip("eden.tip.acid_rain", true),     // v2: tainted rain on high risk
+            new Tip("eden.tip.fragments", false)     // S1: drafter fragments + decode
     );
 
     /** Curated pastel-ish palette for normal tips (readable on the dark chat background). */
@@ -159,6 +160,7 @@ public final class TipsSystem {
             tag = Component.literal("[你知道吗？] ")
                     .withStyle(ChatFormatting.AQUA).withStyle(ChatFormatting.BOLD);
         }
+        tag = tag.append(toneFlavour());   // 批C: once the world is half clean, the AI's voice drifts
         MutableComponent body = Component.translatable(tip.key());
         if (tip.important()) {
             body.withStyle(nextRainbow().withBold(true));
@@ -166,6 +168,33 @@ public final class TipsSystem {
             body.withStyle(Style.EMPTY.withColor(PASTELS[RANDOM.nextInt(PASTELS.length)]));
         }
         return tag.append(body);
+    }
+
+    /**
+     * AI 措辞分档 (S1 批C): once pollution <= 50%, the companion AI's opening line starts leaning
+     * toward whichever unnamed meter leads - players are meant to NOTICE the drift, never be told
+     * what moves it. Below the threshold roughly one tip in three carries the flavour.
+     */
+    private static MutableComponent toneFlavour() {
+        MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null || RANDOM.nextInt(3) != 0) {
+            return Component.empty();
+        }
+        var data = com.srqingchen.eden.data.CampaignData.get(server);
+        if (data.pollution() > 50.0f) {
+            return Component.empty();
+        }
+        float p = data.protocolPurity(), s = data.protocolSymbiosis(), a = data.protocolArchive();
+        String key;
+        if (p >= s && p >= a) {
+            key = "eden.tone.purity";
+        } else if (s >= a) {
+            key = "eden.tone.symbiosis";
+        } else {
+            key = "eden.tone.archive";
+        }
+        return Component.literal(" ").append(Component.translatable(key)
+                .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
     }
 
     /** Walk the hue wheel a step per important send (chat cannot animate, so this reads as dynamic). */

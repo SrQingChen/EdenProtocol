@@ -45,6 +45,10 @@ public class PurifierItem extends Item {
             return InteractionResult.PASS;
         }
         state.erosion = Math.max(0f, state.erosion - EROSION_RELIEF);
+        if (sp.level().getServer() != null) {
+            // 三值温度计 (批C): using the ark's purge medicine leans the protocol toward 肃.
+            com.srqingchen.eden.data.CampaignData.get(sp.level().getServer()).addProtocolPurity(0.5f);
+        }
         EdenNetwork.syncTo(sp);
         held.shrink(1);
         serverLevel.sendParticles(ParticleTypes.END_ROD, sp.getX(), sp.getY() + 1.1, sp.getZ(),

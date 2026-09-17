@@ -220,5 +220,7 @@ public final class LootInjectionSystem {
                 LOOT_CONDITIONS.register("raid_dimension", () -> RaidDimensionCondition.MAP_CODEC);
         public static final DeferredHolder<MapCodec<? extends LootItemCondition>, MapCodec<RaidDifficultyCondition>> RAID_DIFFICULTY =
                 LOOT_CONDITIONS.register("raid_difficulty", () -> RaidDifficultyCondition.MAP_CODEC);
+        public static final DeferredHolder<MapCodec<? extends LootItemCondition>, MapCodec<FragmentSystem.SeasonOneCondition>> SEASON_ONE =
+                LOOT_CONDITIONS.register("season_one", () -> FragmentSystem.SeasonOneCondition.MAP_CODEC);
     }
 }

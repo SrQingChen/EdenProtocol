@@ -124,6 +124,10 @@ public final class OasisSystem {
         for (var p : raid.players()) {
             double pdx = p.getX() - c.getX();
             double pdz = p.getZ() - c.getZ();
+            if (pdx * pdx + pdz * pdz <= OASIS_RADIUS * OASIS_RADIUS
+                    && p.getData(com.srqingchen.eden.registry.EdenAttachments.RAID_STATE).inRaid) {
+                com.srqingchen.eden.season.SeasonSystem.run(p).visitedOasis = true;   // 批C 共生值
+            }
             if (pdx * pdx + pdz * pdz <= 48.0 * 48.0) {
                 anyoneNear = true;
                 break;
