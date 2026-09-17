@@ -312,7 +312,11 @@ public final class EcologySystem {
                         break;
                     }
                 }
-                if (highRisk && raid.getRandom().nextFloat() < 0.75f) {
+                // S1 矿洞季 event tendency (batch B): the acid rain backs off while the cave season
+                // runs (0.75 -> 0.45 roll chance) so the collapse event owns the weather slot.
+                float chance = com.srqingchen.eden.data.CampaignData.get(raid.getServer()).seasonIndex() == 1
+                        ? 0.45f : 0.75f;
+                if (highRisk && raid.getRandom().nextFloat() < chance) {
                     data.setRain(now + RAIN_MIN_DELAY + raid.getRandom().nextInt(RAIN_MAX_DELAY - RAIN_MIN_DELAY));
                     data.setRainState(RAIN_SCHEDULED);
                 } else if (highRisk) {

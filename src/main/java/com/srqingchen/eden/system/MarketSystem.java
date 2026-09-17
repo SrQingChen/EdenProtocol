@@ -140,11 +140,15 @@ public final class MarketSystem {
         return isShortage(data, item) ? 1f + SHORTAGE_BONUS : 1f;
     }
 
-    /** Convenience: the salvage unit value of an item INCLUDING today's shortage bonus. */
+    /** Convenience: the salvage unit value of an item INCLUDING today's shortage bonus (and the S1
+     * 矿洞季 taint-crystal buyback bump, batch B: the ark pays +1 per crystal while the season runs). */
     public static int salvageValue(CampaignData data, Item item) {
         int unit = SalvageTable.valueOf(item);
         if (unit <= 0) {
             return 0;
+        }
+        if (data.seasonIndex() == 1 && item == com.srqingchen.eden.registry.EdenItems.TAINT_CRYSTAL.get()) {
+            unit += 1;
         }
         return Math.round(unit * salvageMultiplier(data, item));
     }

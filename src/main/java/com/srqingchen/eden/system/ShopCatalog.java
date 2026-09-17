@@ -12,7 +12,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.registries.DeferredItem;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -28,7 +27,16 @@ import java.util.Set;
 public final class ShopCatalog {
     private ShopCatalog() {}
 
-    public record Entry(DeferredItem<? extends Item> item, int cost) {}
+    /**
+     * One catalog slot: the item (DeferredItem is a Supplier&lt;Item&gt;, so vanilla staples can be
+     * listed with a plain lambda) plus the stack size handed out per purchase (S1 矿洞季 supply packs
+     * like the torch bundle ship 16 at a time) and the base supply-point cost.
+     */
+    public record Entry(java.util.function.Supplier<? extends Item> item, int count, int cost) {
+        Entry(java.util.function.Supplier<? extends Item> item, int cost) {
+            this(item, 1, cost);
+        }
+    }
 
     private static final Map<String, Entry> CATALOG = new LinkedHashMap<>();
 
@@ -45,6 +53,10 @@ public final class ShopCatalog {
         CATALOG.put("tail", new Entry(EdenItems.GREED_TAIL, 60));
         // Intel tool (§11): situation reads + extraction bearings + affix peels.
         CATALOG.put("scanner", new Entry(EdenItems.SCANNER, 45));
+        // S1 矿洞季 requisition list (batch B): caving staples the ark stocks while the season runs.
+        CATALOG.put("torchpack", new Entry(() -> net.minecraft.world.item.Items.TORCH, 16, 10));
+        CATALOG.put("beaconlite", new Entry(() -> net.minecraft.world.item.Items.GLOWSTONE, 4, 20));
+        CATALOG.put("deepspick", new Entry(() -> net.minecraft.world.item.Items.IRON_PICKAXE, 40));
     }
 
     public static Entry get(String key) {
@@ -127,8 +139,14 @@ public final class ShopCatalog {
         }
         ItemStack proto = new ItemStack(entry.item().get());
         String name = proto.getHoverName().getString();
+        if (entry.count() > 1) {
+            name = name + " x" + entry.count();
+        }
         for (int i = 0; i < qty; i++) {
             ItemStack stack = proto.copy();
+            if (entry.count() > 1) {
+                stack.setCount(Math.min(entry.count(), stack.getMaxStackSize()));
+            }
             if (!player.getInventory().add(stack)) {
                 player.drop(stack, false);
             }

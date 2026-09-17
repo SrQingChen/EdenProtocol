@@ -19,12 +19,26 @@ public enum RaidAffix {
     /** Corrosion: equipped gear loses durability faster. */
     CORROSION("corrosion"),
     /** Dense fog: visibility drops further (the client fog thickens). */
-    DENSE_FOG("dense_fog");
+    DENSE_FOG("dense_fog"),
+    // ---- S1 矿洞季 cave affixes (only roll while the cave season is active, see RaidService) ----
+    /** 深处低语: underground ambience + mis-positioned fake footsteps (client-side, y<0 only). */
+    DEEP_WHISPER("deep_whisper", true),
+    /** 幽暗菌毯: cave spore motes near the crew; underground monsters sense you from further out. */
+    GLOOM_MYCELIUM("gloom_mycelium", true),
+    /** 矿脉共鸣: nearby ore glints through the stone, but mining it rings the dinner bell. */
+    ORE_RESONANCE("ore_resonance", true);
 
     public final String id;
+    /** Cave-season affixes only enter the roll while S1 矿洞季 is the live season. */
+    public final boolean caveSeason;
 
     RaidAffix(String id) {
+        this(id, false);
+    }
+
+    RaidAffix(String id, boolean caveSeason) {
         this.id = id;
+        this.caveSeason = caveSeason;
     }
 
     /** Localized name key, e.g. {@code eden.affix.spore_storm.name}. */

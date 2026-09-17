@@ -115,10 +115,19 @@ public class RaidService {
         return rollAffixes(player);
     }
 
-    /** Roll 1-3 distinct affixes for a brand-new expedition. */
+    /** Roll 1-3 distinct affixes for a brand-new expedition (cave-season affixes only while S1 is live). */
     private static List<String> rollAffixes(ServerPlayer player) {
         RandomSource rand = player.getRandom();
-        List<RaidAffix> pool = new ArrayList<>(List.of(RaidAffix.values()));
+        boolean caveSeason = false;
+        if (player.level().getServer() != null) {
+            caveSeason = CampaignData.get(player.level().getServer()).seasonIndex() == 1;
+        }
+        List<RaidAffix> pool = new ArrayList<>();
+        for (RaidAffix a : RaidAffix.values()) {
+            if (!a.caveSeason || caveSeason) {
+                pool.add(a);
+            }
+        }
         int count = Math.min(pool.size(), 1 + rand.nextInt(3));
         List<String> result = new ArrayList<>();
         for (int i = 0; i < count; i++) {

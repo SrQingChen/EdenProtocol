@@ -82,6 +82,13 @@ public final class AffixSystem {
                 case WHISPER, DENSE_FOG -> {
                     // Client-side ambience only (thicker fog / whisper sounds); nothing to apply on the server.
                 }
+                case DEEP_WHISPER -> {
+                    // Client-side underground ambience (AffixAmbience fake footsteps).
+                }
+                case GLOOM_MYCELIUM, ORE_RESONANCE -> {
+                    // World-level effects (aggro range on join, ore glints, mining anger) live in
+                    // CaveSeasonSystem - they need level scanning, not per-player pulses.
+                }
             }
         }
     }

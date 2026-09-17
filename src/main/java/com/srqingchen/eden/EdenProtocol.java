@@ -152,6 +152,11 @@ public class EdenProtocol {
         // loads (vanilla + mods + datapacks); after boot it re-applies the saved config if it differs.
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.LootInjectionSystem::onLootTableLoad);
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.LootInjectionSystem::onServerStarted);
+        // S1 矿洞季 modifier package (batch B): underground spawn pressure + cave stock swaps, the
+        // collapse event, and the two mechanical cave affixes (幽暗菌毯 / 矿脉共鸣).
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onEntityJoinLevel);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onBlockBreak);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, EdenConfig.SPEC);
         modContainer.registerConfig(ModConfig.Type.CLIENT, EdenClientConfig.SPEC);

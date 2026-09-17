@@ -20,7 +20,8 @@ public final class SeasonTracker {
     private SeasonTracker() {}
 
     private static final int SURVEY_SAMPLE_EVERY = 10;   // ticks between movement samples
-    private static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>[] ORE_TAGS =
+    /** The vanilla ore tags - shared with CaveSeasonSystem (矿脉共鸣). */
+    public static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>[] ORE_TAGS =
             new net.minecraft.tags.TagKey[]{net.minecraft.tags.BlockTags.COAL_ORES,
                     net.minecraft.tags.BlockTags.IRON_ORES, net.minecraft.tags.BlockTags.COPPER_ORES,
                     net.minecraft.tags.BlockTags.GOLD_ORES, net.minecraft.tags.BlockTags.REDSTONE_ORES,
