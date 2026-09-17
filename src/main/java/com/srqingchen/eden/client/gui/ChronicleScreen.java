@@ -1,5 +1,6 @@
 package com.srqingchen.eden.client.gui;
 
+import com.srqingchen.eden.network.AdvanceVotePayload;
 import com.srqingchen.eden.network.ChroniclePayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -7,12 +8,16 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 /**
  * The chronicle wall / campaign panel screen (§13/§14, self-made per the v1 decision): the Duststar
  * gauge, stage, tallies, objectives ("what lowers the gauge next") and the highlight reel, drawn as a
  * code-only board. The wall block pushes a {@link ChroniclePayload}; the screen is a static picture of
  * it (re-open to refresh).
+ * <p>Season block (S1 批A): a season/contracts status line, and once >= 3/5 contracts are banked the
+ *「推进赛季」button - a server-wide majority vote (first click opens a 30s window, every click counts,
+ * more than half of the online players advances the season).
  */
 @OnlyIn(Dist.CLIENT)
 public class ChronicleScreen extends Screen {
@@ -27,8 +32,21 @@ public class ChronicleScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        if (data.advanceReady()) {
+            this.addRenderableWidget(Button.builder(advanceButtonLabel(), b -> {
+                        ClientPacketDistributor.sendToServer(new AdvanceVotePayload());
+                        this.onClose();   // re-open the wall to see the fresh vote state
+                    })
+                    .pos(this.width / 2 - 110, this.height - 26).size(140, 20).build());
+        }
         this.addRenderableWidget(Button.builder(Component.translatable("eden.launchpad.close"), b -> this.onClose())
-                .pos(this.width / 2 - 40, this.height - 26).size(80, 20).build());
+                .pos(this.width / 2 + 40, this.height - 26).size(80, 20).build());
+    }
+
+    private Component advanceButtonLabel() {
+        return data.voteActive()
+                ? Component.translatable("eden.season.vote.button_active", data.voteYes(), data.voteNeed())
+                : Component.translatable("eden.season.vote.button");
     }
 
     @Override
@@ -72,6 +90,17 @@ public class ChronicleScreen extends Screen {
                 : "eden.chronicle.objective." + data.stage();
         graphics.centeredText(this.font, Component.translatable(objectiveKey), cx, y, 0xFFFFD966);
         y += 16;
+
+        // Season status (S1): season index + contracts done/total; vote progress while a window is open.
+        String season = Component.translatable("eden.season.chronicle",
+                data.seasonIndex(), data.contractsDone(), data.contractsTotal()).getString();
+        graphics.centeredText(this.font, season, cx, y, 0xFF9AD8FF);
+        y += 12;
+        if (data.voteActive()) {
+            graphics.centeredText(this.font, Component.translatable("eden.season.vote.status",
+                    data.voteYes(), data.voteNeed()), cx, y, 0xFFFFD966);
+            y += 12;
+        }
 
         if (data.stage() != 0) {
             String unlockHint = Component.translatable("eden.chronicle.next_unlock",

@@ -56,7 +56,12 @@ public class ChronicleWallBlock extends Block {
                 data.pollution(), data.stage(), data.paradiseUnlocked(),
                 data.getSupplyPoints(), data.totalRaids(), data.successfulExtracts(),
                 data.coresDestroyed(), data.dragonsSlain(),
-                highlightKeys, highlightPlayers, highlightValues));
+                highlightKeys, highlightPlayers, highlightValues,
+                data.seasonIndex(), data.contractsDone().size(), 5,
+                com.srqingchen.eden.season.SeasonSystem.canAdvance(level.getServer()),
+                com.srqingchen.eden.season.SeasonSystem.voteState(level.getServer())[0],
+                com.srqingchen.eden.season.SeasonSystem.voteYesCount(),
+                level.getServer().getPlayerList().getPlayerCount() / 2 + 1));
         return InteractionResult.SUCCESS;
     }
 }

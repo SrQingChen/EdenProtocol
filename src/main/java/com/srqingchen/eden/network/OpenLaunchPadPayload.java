@@ -14,10 +14,14 @@ import java.util.List;
  * Server -> client: open the launch pad screen. Carries the campaign snapshot (stage, pollution,
  * paradise flag) plus the difficulty / destination rows with their unlock states and the player's
  * current class, so the client screen renders one authoritative picture with no server round-trips.
+ * <p>Season block (S1 批A 委托行): the S1 contract ids with their done flags, the weekly-focus index
+ * (payout x1.5) and the contract the player currently carries ("" = none).
  */
 public record OpenLaunchPadPayload(int stage, float pollution, boolean paradiseUnlocked,
                                    List<Boolean> difficultyUnlocked, List<Boolean> dimensionUnlocked,
-                                   String currentClass)
+                                   String currentClass,
+                                   List<String> contractIds, List<Boolean> contractDone,
+                                   int weeklyFocus, String currentContract)
         implements CustomPacketPayload {
 
     /** Difficulty order mirrors the screen rows: scout / salvage / purge / abyss / endgame. */
@@ -38,7 +42,12 @@ public record OpenLaunchPadPayload(int stage, float pollution, boolean paradiseU
                     List<Boolean> diffs = readBools(buf);
                     List<Boolean> dims = readBools(buf);
                     String cls = ByteBufCodecs.STRING_UTF8.decode(buf);
-                    return new OpenLaunchPadPayload(stage, pollution, paradise, diffs, dims, cls);
+                    List<String> contractIds = readStrings(buf);
+                    List<Boolean> contractDone = readBools(buf);
+                    int weeklyFocus = buf.readVarInt();
+                    String currentContract = ByteBufCodecs.STRING_UTF8.decode(buf);
+                    return new OpenLaunchPadPayload(stage, pollution, paradise, diffs, dims, cls,
+                            contractIds, contractDone, weeklyFocus, currentContract);
                 }
 
                 @Override
@@ -49,6 +58,10 @@ public record OpenLaunchPadPayload(int stage, float pollution, boolean paradiseU
                     writeBools(buf, p.difficultyUnlocked);
                     writeBools(buf, p.dimensionUnlocked);
                     ByteBufCodecs.STRING_UTF8.encode(buf, p.currentClass);
+                    writeStrings(buf, p.contractIds);
+                    writeBools(buf, p.contractDone);
+                    buf.writeVarInt(p.weeklyFocus);
+                    ByteBufCodecs.STRING_UTF8.encode(buf, p.currentContract);
                 }
             };
 
@@ -65,6 +78,22 @@ public record OpenLaunchPadPayload(int stage, float pollution, boolean paradiseU
         buf.writeVarInt(list.size());
         for (boolean b : list) {
             buf.writeBoolean(b);
+        }
+    }
+
+    private static List<String> readStrings(RegistryFriendlyByteBuf buf) {
+        int n = buf.readVarInt();
+        List<String> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            out.add(ByteBufCodecs.STRING_UTF8.decode(buf));
+        }
+        return out;
+    }
+
+    private static void writeStrings(RegistryFriendlyByteBuf buf, List<String> list) {
+        buf.writeVarInt(list.size());
+        for (String s : list) {
+            ByteBufCodecs.STRING_UTF8.encode(buf, s);
         }
     }
 

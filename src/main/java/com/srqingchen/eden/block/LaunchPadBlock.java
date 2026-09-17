@@ -68,8 +68,18 @@ public class LaunchPadBlock extends Block {
         dims.add(stage >= 3 || stage == 0);   // polluted nether
         dims.add(stage >= 4 || stage == 0);   // polluted end
         String currentClass = sp.getData(EdenAttachments.TALENT_DATA).currentClass;
+        // Season contract row (S1 批A): the S1 contracts with done flags, weekly focus, current pick.
+        List<String> contractIds = new ArrayList<>();
+        List<Boolean> contractDone = new ArrayList<>();
+        for (var c : com.srqingchen.eden.season.SeasonSystem.currentContracts(server)) {
+            contractIds.add(c.id());
+            contractDone.add(campaign.isContractDone(c.id()));
+        }
+        int weeklyFocus = com.srqingchen.eden.season.SeasonSystem.weeklyFocusIndex(server);
+        String currentContract = com.srqingchen.eden.season.SeasonSystem.currentContractId(sp);
         PacketDistributor.sendToPlayer(sp, new OpenLaunchPadPayload(
-                stage, campaign.pollution(), campaign.paradiseUnlocked(), diffs, dims, currentClass));
+                stage, campaign.pollution(), campaign.paradiseUnlocked(), diffs, dims, currentClass,
+                contractIds, contractDone, weeklyFocus, currentContract));
         return InteractionResult.SUCCESS;
     }
 }

@@ -14,11 +14,15 @@ import java.util.List;
  * Server -> client: the chronicle wall snapshot (§13/§14) - campaign gauge, stage, tallies, supply
  * pool and the highlight reel. Highlight entries travel as parallel string/int lists (key, hero,
  * value) so the client renders them with {@code Component.translatable(key, player, value)}.
+ * <p>Season block (S1 批A 推进按钮): season index, contracts done count / total, the >=3/5 advance
+ * gate and the live server-wide advance vote (yes-count and the majority threshold).
  */
 public record ChroniclePayload(float pollution, int stage, boolean paradiseUnlocked,
                                int supplyPoints, int totalRaids, int successfulExtracts,
                                int coresDestroyed, int dragonsSlain,
-                               List<String> highlightKeys, List<String> highlightPlayers, List<Integer> highlightValues)
+                               List<String> highlightKeys, List<String> highlightPlayers, List<Integer> highlightValues,
+                               int seasonIndex, int contractsDone, int contractsTotal,
+                               boolean advanceReady, boolean voteActive, int voteYes, int voteNeed)
         implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<ChroniclePayload> TYPE =
@@ -43,8 +47,16 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     for (int i = 0; i < n; i++) {
                         values.add(buf.readVarInt());
                     }
+                    int seasonIndex = buf.readVarInt();
+                    int contractsDone = buf.readVarInt();
+                    int contractsTotal = buf.readVarInt();
+                    boolean advanceReady = buf.readBoolean();
+                    boolean voteActive = buf.readBoolean();
+                    int voteYes = buf.readVarInt();
+                    int voteNeed = buf.readVarInt();
                     return new ChroniclePayload(pollution, stage, paradise, supply, raids, extracts,
-                            cores, dragons, keys, players, values);
+                            cores, dragons, keys, players, values,
+                            seasonIndex, contractsDone, contractsTotal, advanceReady, voteActive, voteYes, voteNeed);
                 }
 
                 @Override
@@ -63,6 +75,13 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     for (int v : p.highlightValues) {
                         buf.writeVarInt(v);
                     }
+                    buf.writeVarInt(p.seasonIndex);
+                    buf.writeVarInt(p.contractsDone);
+                    buf.writeVarInt(p.contractsTotal);
+                    buf.writeBoolean(p.advanceReady);
+                    buf.writeBoolean(p.voteActive);
+                    buf.writeVarInt(p.voteYes);
+                    buf.writeVarInt(p.voteNeed);
                 }
             };
 

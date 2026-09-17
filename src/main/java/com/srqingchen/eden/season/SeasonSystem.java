@@ -72,13 +72,15 @@ public final class SeasonSystem {
         return RUNS.computeIfAbsent(sp.getUUID(), k -> new Run());
     }
 
-    /** Choose the contract to carry (at most one; null clears it). */
+    /** Choose the contract to carry (at most one; null/empty id clears it). */
     public static void selectContract(ServerPlayer sp, String id) {
         Run r = run(sp);
         r.contract = S1.stream().filter(c -> c.id().equals(id)).findFirst().orElse(null);
         if (r.contract != null) {
             EdenMessages.overlay(sp, Type.INFO, "eden.season.msg.selected",
                     net.minecraft.network.chat.Component.translatable(r.contract.nameKey()));
+        } else {
+            EdenMessages.overlay(sp, Type.INFO, "eden.season.msg.cleared");
         }
     }
 
@@ -152,6 +154,62 @@ public final class SeasonSystem {
             EdenMessages.send(p, Type.SPECIAL, "eden.season.msg.advanced", data.seasonIndex());
         }
         com.srqingchen.eden.system.CinematicSystem.playSeasonChange(server);
+    }
+
+    // ---------- server-wide advance vote (S1 批A 编年史推进按钮) ----------
+
+    /** Vote lifetime: first click opens the window, majority (> half of online) advances. */
+    private static final long VOTE_WINDOW_MS = 30_000L;
+    private static long voteDeadline = 0L;
+    private static final java.util.Set<java.util.UUID> votes = new java.util.HashSet<>();
+
+    /** Live vote state for the chronicle payload (also lazily expires a finished window). */
+    public static boolean[] voteState(MinecraftServer server) {
+        boolean active = System.currentTimeMillis() <= voteDeadline;
+        if (!active && voteDeadline != 0L) {
+            votes.clear();
+            voteDeadline = 0L;
+        }
+        int need = server.getPlayerList().getPlayerCount() / 2 + 1;
+        return new boolean[]{active, votes.size() >= need};
+    }
+
+    public static int voteYesCount() {
+        return votes.size();
+    }
+
+    /** One click on the chronicle wall's advance button: open or join the vote; majority advances. */
+    public static void castAdvanceVote(ServerPlayer sp) {
+        MinecraftServer server = sp.level().getServer();
+        if (server == null || !canAdvance(server)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now > voteDeadline) {
+            votes.clear();
+            voteDeadline = now + VOTE_WINDOW_MS;
+            votes.add(sp.getUUID());
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                EdenMessages.send(p, Type.SPECIAL, "eden.season.vote.open", sp.getName().getString());
+            }
+        } else if (votes.add(sp.getUUID())) {
+            EdenMessages.send(sp, Type.INFO, "eden.season.vote.counted");
+        }
+        int need = server.getPlayerList().getPlayerCount() / 2 + 1;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            EdenMessages.send(p, Type.INFO, "eden.season.vote.progress", votes.size(), need);
+        }
+        if (votes.size() >= need) {
+            votes.clear();
+            voteDeadline = 0L;
+            advanceSeason(server);
+        }
+    }
+
+    /** The contract id the player currently carries ("" = none) - for the launch pad payload. */
+    public static String currentContractId(ServerPlayer sp) {
+        Run r = RUNS.get(sp.getUUID());
+        return r != null && r.contract != null ? r.contract.id() : "";
     }
 
     /** Contracts of the CURRENT season (S1 only for now; future seasons key off seasonIndex). */

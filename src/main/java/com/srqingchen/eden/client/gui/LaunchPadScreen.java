@@ -23,12 +23,14 @@ public class LaunchPadScreen extends Screen {
     private final OpenLaunchPadPayload data;
     private int difficultyIndex = 0;
     private int dimensionIndex = 0;
+    private int contractIndex = -1;   // -1 = carry none; clicking the carried contract clears it
 
     private static final String[] CLASS_IDS = {"engineer", "prospector", "medic", "vanguard", "scavenger"};
 
     public LaunchPadScreen(OpenLaunchPadPayload data) {
         super(Component.translatable("eden.launchpad.title"));
         this.data = data;
+        this.contractIndex = data.contractIds().indexOf(data.currentContract());
     }
 
     @Override
@@ -52,7 +54,7 @@ public class LaunchPadScreen extends Screen {
                     })
                     .pos(x0 + i * (bw + gap), diffY).size(bw, 20).build());
         }
-        int dimY = 94;
+        int dimY = 92;
         for (int i = 0; i < OpenLaunchPadPayload.DIMENSIONS.size(); i++) {
             final int idx = i;
             boolean unlocked = data.dimensionUnlocked().get(i);
@@ -65,8 +67,34 @@ public class LaunchPadScreen extends Screen {
                     })
                     .pos(x0 + i * (bw + gap), dimY).size(bw, 20).build());
         }
+        // Season contract row (S1 批A): "无委托" + the five contracts; done ones show a check, the
+        // weekly focus a star, clicking the carried contract clears it (双击取消).
+        int conY = 130;
+        int conBtn = 76;
+        int conW = (OpenLaunchPadPayload.DIFFICULTIES.size() + 1);
+        int conRowW = conW * conBtn + (conW - 1) * gap;
+        int conX0 = this.width / 2 - conRowW / 2;
+        this.addRenderableWidget(Button.builder(contractNoneLabel(), b -> {
+                    contractIndex = -1;
+                    sendContract("");
+                })
+                .pos(conX0, conY).size(conBtn, 20).build());
+        for (int i = 0; i < data.contractIds().size(); i++) {
+            final int idx = i;
+            boolean done = i < data.contractDone().size() && data.contractDone().get(i);
+            this.addRenderableWidget(Button.builder(contractLabel(i, done), b -> {
+                        if (done) {
+                            return;   // banked this season: nothing to select
+                        }
+                        // Toggle: clicking the carried contract clears it.
+                        int pick = (contractIndex == idx) ? -1 : idx;
+                        contractIndex = pick;
+                        sendContract(pick < 0 ? "" : data.contractIds().get(pick));
+                    })
+                    .pos(conX0 + (i + 1) * (conBtn + gap), conY).size(conBtn, 20).build());
+        }
         // Class quick-switch row: current class highlighted; clicking switches immediately (free at the pad).
-        int clsY = 136;
+        int clsY = 166;
         for (int i = 0; i < CLASS_IDS.length; i++) {
             final String cls = CLASS_IDS[i];
             this.addRenderableWidget(Button.builder(classLabel(cls), b -> {
@@ -75,9 +103,9 @@ public class LaunchPadScreen extends Screen {
                     })
                     .pos(x0 + i * (bw + gap), clsY).size(bw, 20).build());
         }
-        int launchY = 170;
+        int launchY = 196;
         this.addRenderableWidget(Button.builder(Component.translatable("eden.launchpad.launch"), b -> launch())
-                .pos(this.width / 2 - 75, launchY).size(150, 22).build());
+                .pos(this.width / 2 - 75, launchY).size(150, 20).build());
         this.addRenderableWidget(Button.builder(Component.translatable("eden.launchpad.close"), b -> this.onClose())
                 .pos(this.width / 2 - 40, this.height - 26).size(80, 20).build());
     }
@@ -103,6 +131,28 @@ public class LaunchPadScreen extends Screen {
     private Component classLabel(String cls) {
         String name = Component.translatable("eden.class." + cls).getString();
         return cls.equals(data.currentClass()) ? Component.literal("◆ " + name) : Component.literal(name);
+    }
+
+    private Component contractNoneLabel() {
+        return contractIndex < 0 ? Component.literal("▶ " + noContractText()) : Component.literal(noContractText());
+    }
+
+    private String noContractText() {
+        return Component.translatable("eden.launchpad.contract_none").getString();
+    }
+
+    private Component contractLabel(int i, boolean done) {
+        String name = Component.translatable("eden.season.contract." + data.contractIds().get(i)).getString();
+        if (done) {
+            return Component.literal("✓ " + name);
+        }
+        String prefix = i == data.weeklyFocus() ? "★" : "";
+        return contractIndex == i ? Component.literal("▶ " + prefix + name) : Component.literal(prefix + name);
+    }
+
+    private void sendContract(String id) {
+        ClientPacketDistributor.sendToServer(new com.srqingchen.eden.network.SelectContractPayload(id));
+        relabel();
     }
 
     private void relabel() {
@@ -131,10 +181,18 @@ public class LaunchPadScreen extends Screen {
         graphics.centeredText(this.font, Component.translatable("eden.launchpad.difficulty_row"),
                 this.width / 2, 42, 0xFFAAAAAA);
         graphics.centeredText(this.font, Component.translatable("eden.launchpad.dimension_row"),
-                this.width / 2, 84, 0xFFAAAAAA);
+                this.width / 2, 82, 0xFFAAAAAA);
+        graphics.centeredText(this.font, Component.translatable("eden.launchpad.contract_row"),
+                this.width / 2, 120, 0xFFAAAAAA);
         graphics.centeredText(this.font, Component.translatable("eden.launchpad.class_row"),
-                this.width / 2, 126, 0xFFAAAAAA);
+                this.width / 2, 156, 0xFFAAAAAA);
         String hint = Component.translatable("eden.launchpad.class_hint").getString();
         graphics.centeredText(this.font, hint, this.width / 2, this.height - 48, 0xFF666666);
+        // Carried-contract objective reminder above the launch button.
+        if (contractIndex >= 0 && contractIndex < data.contractIds().size()) {
+            String desc = Component.translatable(
+                    "eden.season.contract." + data.contractIds().get(contractIndex) + ".desc").getString();
+            graphics.centeredText(this.font, desc, this.width / 2, 182, 0xFFFFD966);
+        }
     }
 }

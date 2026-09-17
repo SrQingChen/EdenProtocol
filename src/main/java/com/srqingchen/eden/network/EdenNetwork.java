@@ -92,6 +92,9 @@ public class EdenNetwork {
         // chosen expedition (difficulty + destination); the server re-validates before launching.
         registrar.playToClient(OpenLaunchPadPayload.TYPE, OpenLaunchPadPayload.STREAM_CODEC, EdenNetwork::handleOpenLaunchPad);
         registrar.playToServer(LaunchRaidPayload.TYPE, LaunchRaidPayload.STREAM_CODEC, EdenNetwork::handleLaunchRaid);
+        // Season contracts (S1 批A): launch-pad contract row selection + chronicle-wall advance vote.
+        registrar.playToServer(SelectContractPayload.TYPE, SelectContractPayload.STREAM_CODEC, EdenNetwork::handleSelectContract);
+        registrar.playToServer(AdvanceVotePayload.TYPE, AdvanceVotePayload.STREAM_CODEC, EdenNetwork::handleAdvanceVote);
         // Chronicle wall (§13/§14): server pushes the campaign snapshot; the screen is read-only.
         registrar.playToClient(ChroniclePayload.TYPE, ChroniclePayload.STREAM_CODEC, EdenNetwork::handleChronicle);
         // Rift altar (v2 card forge): open is client-bound, forge requests are server-bound and re-validated.
@@ -219,6 +222,24 @@ public class EdenNetwork {
             if (context.player() instanceof ServerPlayer sp) {
                 ShopCatalog.buy(sp, payload.key(), payload.count());
                 ShopCatalog.sendBalance(sp);
+            }
+        });
+    }
+
+    /** Launch-pad contract row: carry (or clear) the season contract for the next run. */
+    private static void handleSelectContract(SelectContractPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                com.srqingchen.eden.season.SeasonSystem.selectContract(sp, payload.contractId());
+            }
+        });
+    }
+
+    /** Chronicle-wall advance button: open/join the server-wide majority vote. */
+    private static void handleAdvanceVote(AdvanceVotePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer sp) {
+                com.srqingchen.eden.season.SeasonSystem.castAdvanceVote(sp);
             }
         });
     }
