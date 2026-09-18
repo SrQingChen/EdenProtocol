@@ -218,11 +218,15 @@ public class EdenNetwork {
         });
     }
 
-    /** Chronicle-wall advance button: open/join the server-wide majority vote. */
+/** Chronicle-wall advance button: vote (gate closed), enter the arena (gate open) or re-run vote. */
     private static void handleAdvanceVote(AdvanceVotePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer sp) {
-                com.srqingchen.eden.season.SeasonSystem.castAdvanceVote(sp);
+                if (com.srqingchen.eden.system.FinaleSystem.gateOpen(sp.level().getServer())) {
+                    com.srqingchen.eden.system.FinaleSystem.enter(sp);   // gate open: straight in
+                } else {
+                    com.srqingchen.eden.season.SeasonSystem.castAdvanceVote(sp);
+                }
             }
         });
     }

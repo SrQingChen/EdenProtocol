@@ -23,6 +23,7 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                                List<String> highlightKeys, List<String> highlightPlayers, List<Integer> highlightValues,
                                int seasonIndex, String seasonTitleKey, int contractsDone, int contractsTotal,
                                boolean advanceReady, boolean voteActive, int voteYes, int voteNeed,
+                               boolean finaleUnlocked, boolean seasonCompleted, List<String> endingsSeen,
                                float meterPurity, float meterSymbiosis, float meterArchive,
                                int pagesPurity, int pagesSymbiosis, int pagesArchive)
         implements CustomPacketPayload {
@@ -57,6 +58,9 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     boolean voteActive = buf.readBoolean();
                     int voteYes = buf.readVarInt();
                     int voteNeed = buf.readVarInt();
+                    boolean finaleUnlocked = buf.readBoolean();
+                    boolean seasonCompleted = buf.readBoolean();
+                    List<String> endings = readStrings(buf);
                     float mPurity = buf.readFloat();
                     float mSymbiosis = buf.readFloat();
                     float mArchive = buf.readFloat();
@@ -66,6 +70,7 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     return new ChroniclePayload(pollution, stage, paradise, supply, raids, extracts,
                             cores, dragons, keys, players, values,
                             seasonIndex, seasonTitleKey, contractsDone, contractsTotal, advanceReady, voteActive, voteYes, voteNeed,
+                            finaleUnlocked, seasonCompleted, endings,
                             mPurity, mSymbiosis, mArchive, pPurity, pSymbiosis, pArchive);
                 }
 
@@ -93,6 +98,9 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     buf.writeBoolean(p.voteActive);
                     buf.writeVarInt(p.voteYes);
                     buf.writeVarInt(p.voteNeed);
+                    buf.writeBoolean(p.finaleUnlocked);
+                    buf.writeBoolean(p.seasonCompleted);
+                    writeStrings(buf, p.endingsSeen);
                     buf.writeFloat(p.meterPurity);
                     buf.writeFloat(p.meterSymbiosis);
                     buf.writeFloat(p.meterArchive);

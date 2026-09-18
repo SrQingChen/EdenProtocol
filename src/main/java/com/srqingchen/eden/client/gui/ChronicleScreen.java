@@ -39,7 +39,16 @@ public class ChronicleScreen extends Screen {
                 .pos(this.width / 2 - 124, 22).size(120, 16).build());
         this.addRenderableWidget(Button.builder(pageTabLabel(PAGE_RESERVE), b -> switchPage(PAGE_RESERVE))
                 .pos(this.width / 2 + 4, 22).size(120, 16).build());
-        if (data.advanceReady()) {
+        if (data.finaleUnlocked() && !data.seasonCompleted()) {
+            // Gate already open (3/5 passed the vote): the button is a direct arena entrance,
+            // for the first gathering and every re-entry after a wipe.
+            this.addRenderableWidget(Button.builder(
+                            Component.translatable("eden.finale.enter_button"), b -> {
+                        ClientPacketDistributor.sendToServer(new AdvanceVotePayload());
+                        this.onClose();
+                    })
+                    .pos(this.width / 2 - 110, this.height - 26).size(140, 20).build());
+        } else if (data.advanceReady()) {
             this.addRenderableWidget(Button.builder(advanceButtonLabel(), b -> {
                         ClientPacketDistributor.sendToServer(new AdvanceVotePayload());
                         this.onClose();   // re-open the wall to see the fresh vote state
@@ -62,6 +71,11 @@ public class ChronicleScreen extends Screen {
     }
 
     private Component advanceButtonLabel() {
+        if (data.seasonCompleted()) {
+            return data.voteActive()
+                    ? Component.translatable("eden.season.rerun.button_active", data.voteYes(), data.voteNeed())
+                    : Component.translatable("eden.season.rerun.button");
+        }
         return data.voteActive()
                 ? Component.translatable("eden.season.vote.button_active", data.voteYes(), data.voteNeed())
                 : Component.translatable("eden.season.vote.button");
@@ -121,6 +135,23 @@ public class ChronicleScreen extends Screen {
         if (data.voteActive()) {
             graphics.centeredText(this.font, Component.translatable("eden.season.vote.status",
                     data.voteYes(), data.voteNeed()), cx, y, 0xFFFFD966);
+            y += 12;
+        }
+        if (data.seasonCompleted()) {
+            graphics.centeredText(this.font, Component.translatable("eden.finale.done_line"), cx, y, 0xFF7FE0A8);
+            y += 12;
+        }
+        if (!data.endingsSeen().isEmpty()) {
+            StringBuilder gallery = new StringBuilder();
+            for (String e : data.endingsSeen()) {
+                if (!gallery.isEmpty()) {
+                    gallery.append("  ");
+                }
+                gallery.append("\u2713 ").append(Component.translatable(
+                        "eden.finale.end." + e + ".title").getString());
+            }
+            graphics.centeredText(this.font, Component.translatable("eden.finale.gallery",
+                    gallery.toString()), cx, y, 0xFFFFD24A);
             y += 12;
         }
 

@@ -66,6 +66,7 @@ public class ChronicleWallBlock extends Block {
                 com.srqingchen.eden.season.SeasonSystem.voteState(level.getServer())[0],
                 com.srqingchen.eden.season.SeasonSystem.voteYesCount(),
                 level.getServer().getPlayerList().getPlayerCount() / 2 + 1,
+                data.finaleUnlocked(), data.seasonCompleted(), data.endingsSeen(),
                 data.protocolPurity(), data.protocolSymbiosis(), data.protocolArchive(),
                 data.pagesFound("purity"), data.pagesFound("symbiosis"), data.pagesFound("archive")));
         return InteractionResult.SUCCESS;

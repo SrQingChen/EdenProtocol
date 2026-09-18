@@ -148,11 +148,28 @@ public final class SeasonSystem {
         }
     }
 
-    /** Season advance gate: the active season's threshold (3-of-5 by default). */
+/** Season advance gate: the active season's threshold (3-of-5 by default); a COMPLETED season
+     * always re-opens the gate for the multi-playthrough re-run vote. */
     public static boolean canAdvance(MinecraftServer server) {
+        var data = com.srqingchen.eden.data.CampaignData.get(server);
+        if (data.seasonCompleted()) {
+            return true;
+        }
         SeasonDefinition season = Seasons.current(server);
         int need = season == null ? 3 : season.advanceThreshold();
-        return com.srqingchen.eden.data.CampaignData.get(server).contractsDone().size() >= need;
+        return data.contractsDone().size() >= need;
+    }
+
+    /** Multi-playthrough re-run: same season from the top; endings/meta stay banked. */
+    public static void rerunSeason(MinecraftServer server) {
+        var data = com.srqingchen.eden.data.CampaignData.get(server);
+        data.resetSeasonCycle();
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            EdenMessages.send(p, Type.SPECIAL, "eden.season.rerun",
+                    net.minecraft.network.chat.Component.translatable(
+                            Seasons.current(server).titleKey()));
+        }
+        com.srqingchen.eden.system.CinematicSystem.playSeasonChange(server);
     }
 
     /** Advance the season (called from the chronicle-wall button / admin command). */
@@ -214,7 +231,14 @@ public final class SeasonSystem {
         if (votes.size() >= need) {
             votes.clear();
             voteDeadline = 0L;
-            advanceSeason(server);
+            // 批 D: a passed vote opens the finale gate permanently (the season turns over only
+            // when the arena's apex boss falls); on a COMPLETED season the same vote re-runs it
+            // (multi-playthrough: campaign starts over, meta progression + ending gallery stay).
+            if (com.srqingchen.eden.data.CampaignData.get(server).seasonCompleted()) {
+                rerunSeason(server);
+            } else {
+                com.srqingchen.eden.system.FinaleSystem.onVotePassed(server);
+            }
         }
     }
 

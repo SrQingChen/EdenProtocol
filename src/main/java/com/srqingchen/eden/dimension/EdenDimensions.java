@@ -24,6 +24,8 @@ public class EdenDimensions {
     public static final ResourceKey<Level> RAID_END = key("raid_end");
     /** Paradise: the purified reward world, unlocked when the campaign pollution hits zero. */
     public static final ResourceKey<Level> PARADISE = key("paradise");
+    /** Finale arena (批 D): the void colosseum where a season's last boss is fought. */
+    public static final ResourceKey<Level> FINALE_ARENA = key("finale_arena");
 
     private static ResourceKey<Level> key(String name) {
         return ResourceKey.create(Registries.DIMENSION, Identifier.fromNamespaceAndPath(EdenProtocol.MODID, name));

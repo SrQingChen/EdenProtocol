@@ -110,6 +110,12 @@ public class EdenProtocol {
         // Event-triggered cinematics (v3): first join + first raid entry (+ season API).
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onLogin);
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CinematicSystem::onChangedDimension);
+        // Season finale (批 D): arena flow (countdown/phases/cleanup), boss death -> ceremony,
+        // arena deaths respawn home, and the ceremony beat scheduler.
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FinaleSystem::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FinaleSystem::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FinaleSystem::onRespawn);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FinaleCeremony::onServerTick);
         // Season & expedition contracts (S1 矿洞季, batch A): goal tracking + logout cleanup.
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonTracker::onPlayerTick);
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonTracker::onBlockBreak);
