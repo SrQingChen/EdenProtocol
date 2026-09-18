@@ -847,5 +847,6 @@
   "eden.loot.hint.trial_chamber": "Trial Chamber",
   "eden.loot.hint.ruined_portal": "Ruined Portal",
   "eden.loot.hint.bastion": "Bastion Remnant",
-  "eden.loot.hint.bonus": "Bonus chest"
+  "eden.loot.hint.bonus": "Bonus chest",
+  "eden.season.s0.title": "S0 · Cave Season"
 }

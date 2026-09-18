@@ -60,6 +60,23 @@ public class CampaignData extends SavedData {
         ).apply(inst, ProtocolState::new));
     }
 
+    /**
+     * Season-registry &amp; finale state (批 D). {@code seasonId} is the active season definition's
+     * registry id; blank on pre-批D saves and resolved through the legacy {@code season_index}.
+     * {@code finaleUnlocked} = the advance vote passed and the arena challenge stays open until
+     * beaten; {@code seasonCompleted} = the finale ceremony has played out; {@code endingsSeen}
+     * collects ending ids across multi-playthrough cycles (the chronicle's ending gallery).
+     */
+    public record SeasonState(String seasonId, boolean finaleUnlocked, boolean seasonCompleted,
+                              List<String> endingsSeen) {
+        public static final Codec<SeasonState> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+                Codec.STRING.optionalFieldOf("season_id", "").forGetter(SeasonState::seasonId),
+                Codec.BOOL.optionalFieldOf("finale_unlocked", false).forGetter(SeasonState::finaleUnlocked),
+                Codec.BOOL.optionalFieldOf("season_completed", false).forGetter(SeasonState::seasonCompleted),
+                Codec.STRING.listOf().optionalFieldOf("endings_seen", List.of()).forGetter(SeasonState::endingsSeen)
+        ).apply(inst, SeasonState::new));
+    }
+
     public static final Codec<CampaignData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.fieldOf("supply_points").forGetter(d -> d.supplyPoints),
             MarketState.CODEC.optionalFieldOf("market", new MarketState(-1L, "", Map.of()))
@@ -78,7 +95,9 @@ public class CampaignData extends SavedData {
             Codec.INT.optionalFieldOf("seasons_advanced", 0).forGetter(d -> d.seasonsAdvanced),
             ProtocolState.CODEC.optionalFieldOf("protocol", new ProtocolState(0f, 0f, 0f, List.of()))
                     .forGetter(d -> new ProtocolState(d.protocolPurity, d.protocolSymbiosis,
-                            d.protocolArchive, d.pagesFound))
+                            d.protocolArchive, d.pagesFound)),
+            SeasonState.CODEC.optionalFieldOf("season_state", new SeasonState("", false, false, List.of()))
+                    .forGetter(d -> new SeasonState(d.seasonId, d.finaleUnlocked, d.seasonCompleted, d.endingsSeen))
     ).apply(inst, CampaignData::new));
 
     public static final SavedDataType<CampaignData> TYPE = new SavedDataType<>(
@@ -119,6 +138,11 @@ public class CampaignData extends SavedData {
     private float protocolArchive;
     /** Discovered《三位起草人》fragment pages, "kind:page" (kind = purity/symbiosis/archive), shared server-wide. */
     private List<String> pagesFound = new ArrayList<>();
+    /** 批 D season-registry + finale state (see {@link SeasonState}). */
+    private String seasonId = "";
+    private boolean finaleUnlocked;
+    private boolean seasonCompleted;
+    private List<String> endingsSeen = new ArrayList<>();
 
     public CampaignData() {
         this.supplyPoints = 0;
@@ -131,7 +155,7 @@ public class CampaignData extends SavedData {
                          int totalRaids, int successfulExtracts, int coresDestroyed, int dragonsSlain,
                          boolean paradiseUnlocked, List<Highlight> highlights, int seasonIndex,
                          List<String> contractsDone, long seasonWeekStamp, int seasonsAdvanced,
-                         ProtocolState protocol) {
+                         ProtocolState protocol, SeasonState seasonState) {
         this.seasonIndex = seasonIndex;
         this.contractsDone = new ArrayList<>(contractsDone);
         this.seasonWeekStamp = seasonWeekStamp;
@@ -152,6 +176,10 @@ public class CampaignData extends SavedData {
         this.protocolSymbiosis = protocol.symbiosis();
         this.protocolArchive = protocol.archive();
         this.pagesFound = new ArrayList<>(protocol.pagesFound());
+        this.seasonId = seasonState.seasonId();
+        this.finaleUnlocked = seasonState.finaleUnlocked();
+        this.seasonCompleted = seasonState.seasonCompleted();
+        this.endingsSeen = new ArrayList<>(seasonState.endingsSeen());
     }
 
     public int getSupplyPoints() {
@@ -300,11 +328,65 @@ public class CampaignData extends SavedData {
         return this.seasonsAdvanced;
     }
 
-    /** Season advance (≥3/5): campaign resets, meta progression (supply points) stays. */
-    public void advanceSeason() {
-        this.seasonIndex++;
-        this.seasonsAdvanced++;
+    // ---------- 批 D season registry + finale state ----------
+
+    /** Registry id of the active season definition ("" = not yet resolved; legacy saves). */
+    public String seasonId() {
+        return this.seasonId;
+    }
+
+    public void setSeasonId(String id) {
+        if (!this.seasonId.equals(id)) {
+            this.seasonId = id;
+            setDirty();
+        }
+    }
+
+    /** The advance vote passed: the arena challenge is open until beaten (multi-retry by design). */
+    public boolean finaleUnlocked() {
+        return this.finaleUnlocked;
+    }
+
+    public void setFinaleUnlocked(boolean unlocked) {
+        this.finaleUnlocked = unlocked;
+        setDirty();
+    }
+
+    /** This season's finale ceremony has played (paradise open, ending banked). */
+    public boolean seasonCompleted() {
+        return this.seasonCompleted;
+    }
+
+    public void setSeasonCompleted(boolean completed) {
+        this.seasonCompleted = completed;
+        setDirty();
+    }
+
+    /** Ending ids witnessed across ALL cycles (the chronicle's ending gallery). */
+    public List<String> endingsSeen() {
+        return this.endingsSeen;
+    }
+
+    public void markEndingSeen(String endingId) {
+        if (!this.endingsSeen.contains(endingId)) {
+            this.endingsSeen.add(endingId);
+            setDirty();
+        }
+    }
+
+    /**
+     * Multi-playthrough cycle reset (重开赛季): season-layer progress starts over — contracts,
+     * finale gate, fragment archive, thermometers and the campaign — while meta progression
+     * (supply points, seasons-advanced history, ending gallery) stays.
+     */
+    public void resetSeasonCycle() {
         this.contractsDone = new ArrayList<>();
+        this.finaleUnlocked = false;
+        this.seasonCompleted = false;
+        this.pagesFound = new ArrayList<>();
+        this.protocolPurity = 0f;
+        this.protocolSymbiosis = 0f;
+        this.protocolArchive = 0f;
         this.pollution = 100.0f;
         this.stage = 1;
         this.totalRaids = 0;
@@ -313,11 +395,14 @@ public class CampaignData extends SavedData {
         this.dragonsSlain = 0;
         this.paradiseUnlocked = false;
         this.highlights = new ArrayList<>();
-        this.protocolPurity = 0f;
-        this.protocolSymbiosis = 0f;
-        this.protocolArchive = 0f;
-        this.pagesFound = new ArrayList<>();
         setDirty();
+    }
+
+    /** Season advance (finale complete → next season mod, or S0 re-run): campaign resets, meta stays. */
+    public void advanceSeason() {
+        this.seasonIndex++;
+        this.seasonsAdvanced++;
+        resetSeasonCycle();
     }
 
     // ---------- 三值温度计 + 残页 (S1 批C) ----------

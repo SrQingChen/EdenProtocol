@@ -120,7 +120,8 @@ public class RaidService {
         RandomSource rand = player.getRandom();
         boolean caveSeason = false;
         if (player.level().getServer() != null) {
-            caveSeason = CampaignData.get(player.level().getServer()).seasonIndex() == 1;
+            caveSeason = com.srqingchen.eden.season.Seasons.isCurrent(
+                    player.level().getServer(), com.srqingchen.eden.season.S0CaveSeason.ID);
         }
         List<RaidAffix> pool = new ArrayList<>();
         for (RaidAffix a : RaidAffix.values()) {

@@ -47,8 +47,8 @@ public final class SeasonSystem {
         PURGE
     }
 
-    /** S1 矿洞季 contracts (profession-agnostic by design). */
-    public static final List<Contract> S1 = List.of(
+    /** S0 矿洞季 contracts (profession-agnostic by design); owned by the season definition. */
+    public static final List<Contract> CAVE_CONTRACTS = List.of(
             new Contract("survey", Goal.SURVEY, 300, 60),
             new Contract("miner", Goal.MINE, 96, 50),
             new Contract("lodge", Goal.LODGE, 1, 55),
@@ -79,7 +79,8 @@ public final class SeasonSystem {
     /** Choose the contract to carry (at most one; null/empty id clears it). */
     public static void selectContract(ServerPlayer sp, String id) {
         Run r = run(sp);
-        r.contract = S1.stream().filter(c -> c.id().equals(id)).findFirst().orElse(null);
+        List<Contract> pool = currentContracts(sp.level().getServer());
+        r.contract = pool == null ? null : pool.stream().filter(c -> c.id().equals(id)).findFirst().orElse(null);
         if (r.contract != null) {
             EdenMessages.overlay(sp, Type.INFO, "eden.season.msg.selected",
                     net.minecraft.network.chat.Component.translatable(r.contract.nameKey()));
@@ -99,7 +100,9 @@ public final class SeasonSystem {
         if (data.seasonWeekStamp() != week) {
             data.setSeasonWeek(week);
         }
-        return (int) (week % S1.size());
+        List<Contract> pool = currentContracts(server);
+        int n = pool == null ? 0 : pool.size();
+        return n == 0 ? 0 : (int) (week % n);
     }
 
     // ---------- payout (called from SettlementService on a successful extraction) ----------
@@ -127,7 +130,10 @@ public final class SeasonSystem {
                     net.minecraft.network.chat.Component.translatable(r.contract.nameKey()));
             return;
         }
-        boolean focus = S1.get(weeklyFocusIndex(server)).id().equals(r.contract.id());
+        List<Contract> pool = currentContracts(server);
+        int focusIdx = weeklyFocusIndex(server);
+        boolean focus = pool != null && focusIdx < pool.size()
+                && pool.get(focusIdx).id().equals(r.contract.id());
         int pay = Math.round(r.contract.rewardSupply() * (focus ? 1.5f : 1f));
         data.markContractDone(r.contract.id());
         data.addSupplyPoints(pay);
@@ -142,9 +148,11 @@ public final class SeasonSystem {
         }
     }
 
-    /** Season advance gate: >= 3 of 5 contracts done. */
+    /** Season advance gate: the active season's threshold (3-of-5 by default). */
     public static boolean canAdvance(MinecraftServer server) {
-        return com.srqingchen.eden.data.CampaignData.get(server).contractsDone().size() >= 3;
+        SeasonDefinition season = Seasons.current(server);
+        int need = season == null ? 3 : season.advanceThreshold();
+        return com.srqingchen.eden.data.CampaignData.get(server).contractsDone().size() >= need;
     }
 
     /** Advance the season (called from the chronicle-wall button / admin command). */
@@ -216,9 +224,10 @@ public final class SeasonSystem {
         return r != null && r.contract != null ? r.contract.id() : "";
     }
 
-    /** Contracts of the CURRENT season (S1 only for now; future seasons key off seasonIndex). */
+    /** Contracts of the CURRENT season, straight from the active season definition (批 D). */
     public static List<Contract> currentContracts(MinecraftServer server) {
-        return S1;   // season 1 = 矿洞季
+        SeasonDefinition season = Seasons.current(server);
+        return season == null ? List.of() : season.contracts();
     }
 
     /** Convenience for HUD/GUI: is the player mid-raid in a raid level. */

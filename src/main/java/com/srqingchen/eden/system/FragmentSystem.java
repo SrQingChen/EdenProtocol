@@ -93,14 +93,14 @@ public final class FragmentSystem {
         return builder.build();
     }
 
-    /** 铭 seam: glow-berry bushes and deepslate in the raid worlds during S1 occasionally hide a page. */
-    public static void onBlockBreak(BreakBlockEvent event) {
+    /** 铭 seam: glow-berry bushes and deepslate in the raid worlds during the season occasionally hide a page.
+     * Facade for the S0 definition's block-break hook (dispatched only while S0 is active). */
+    public static void blockBroken(BreakBlockEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer sp) || !(sp.level() instanceof ServerLevel level)) {
             return;
         }
-        MinecraftServer server = level.getServer();
         BlockPos pos = event.getPos();
-        if (server == null || CampaignData.get(server).seasonIndex() != 1 || sp.getBlockY() >= 0) {
+        if (sp.getBlockY() >= 0) {
             return;
         }
         BlockState state = event.getState();
@@ -168,10 +168,11 @@ public final class FragmentSystem {
         return net.minecraft.network.chat.Component.translatable("eden.fragment.kind." + KINDS[kind]).getString();
     }
 
-    // ---------- roll-time condition: S1 must be the live season ----------
+    // ---------- roll-time condition: the active season must scatter fragments ----------
 
-    /** True when the roll happens while the cave season (seasonIndex == 1) is live.
-     * Registered as {@code eden:season_one} from {@link LootInjectionSystem.Conditions}. */
+    /** True when the roll happens while a fragment season is live (see {@code Seasons.current}).
+     * Registered as {@code eden:season_one} from {@link LootInjectionSystem.Conditions}; the id
+     * stays for datapack compatibility, the check now routes through the season registry. */
     public record SeasonOneCondition() implements LootItemCondition {
         public static final MapCodec<SeasonOneCondition> MAP_CODEC = MapCodec.unit(new SeasonOneCondition());
 
@@ -183,7 +184,11 @@ public final class FragmentSystem {
         @Override
         public boolean test(LootContext context) {
             MinecraftServer server = context.getLevel().getServer();
-            return server != null && CampaignData.get(server).seasonIndex() == 1;
+            if (server == null) {
+                return false;
+            }
+            var season = com.srqingchen.eden.season.Seasons.current(server);
+            return season != null && season.fragmentsActive();
         }
 
         public static LootItemCondition.Builder builder() {

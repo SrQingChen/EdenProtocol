@@ -147,7 +147,8 @@ public final class MarketSystem {
         if (unit <= 0) {
             return 0;
         }
-        if (data.seasonIndex() == 1 && item == com.srqingchen.eden.registry.EdenItems.TAINT_CRYSTAL.get()) {
+        boolean caveSeason = com.srqingchen.eden.season.S0CaveSeason.ID.toString().equals(data.seasonId());
+        if (caveSeason && item == com.srqingchen.eden.registry.EdenItems.TAINT_CRYSTAL.get()) {
             unit += 1;
         }
         return Math.round(unit * salvageMultiplier(data, item));

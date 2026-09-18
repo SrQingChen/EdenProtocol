@@ -21,7 +21,7 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                                int supplyPoints, int totalRaids, int successfulExtracts,
                                int coresDestroyed, int dragonsSlain,
                                List<String> highlightKeys, List<String> highlightPlayers, List<Integer> highlightValues,
-                               int seasonIndex, int contractsDone, int contractsTotal,
+                               int seasonIndex, String seasonTitleKey, int contractsDone, int contractsTotal,
                                boolean advanceReady, boolean voteActive, int voteYes, int voteNeed,
                                float meterPurity, float meterSymbiosis, float meterArchive,
                                int pagesPurity, int pagesSymbiosis, int pagesArchive)
@@ -50,6 +50,7 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                         values.add(buf.readVarInt());
                     }
                     int seasonIndex = buf.readVarInt();
+                    String seasonTitleKey = ByteBufCodecs.STRING_UTF8.decode(buf);
                     int contractsDone = buf.readVarInt();
                     int contractsTotal = buf.readVarInt();
                     boolean advanceReady = buf.readBoolean();
@@ -64,7 +65,7 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                     int pArchive = buf.readVarInt();
                     return new ChroniclePayload(pollution, stage, paradise, supply, raids, extracts,
                             cores, dragons, keys, players, values,
-                            seasonIndex, contractsDone, contractsTotal, advanceReady, voteActive, voteYes, voteNeed,
+                            seasonIndex, seasonTitleKey, contractsDone, contractsTotal, advanceReady, voteActive, voteYes, voteNeed,
                             mPurity, mSymbiosis, mArchive, pPurity, pSymbiosis, pArchive);
                 }
 
@@ -85,6 +86,7 @@ public record ChroniclePayload(float pollution, int stage, boolean paradiseUnloc
                         buf.writeVarInt(v);
                     }
                     buf.writeVarInt(p.seasonIndex);
+                    ByteBufCodecs.STRING_UTF8.encode(buf, p.seasonTitleKey);
                     buf.writeVarInt(p.contractsDone);
                     buf.writeVarInt(p.contractsTotal);
                     buf.writeBoolean(p.advanceReady);

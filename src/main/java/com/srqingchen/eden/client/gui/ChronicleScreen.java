@@ -114,7 +114,8 @@ public class ChronicleScreen extends Screen {
 
         // Season status (S1): season index + contracts done/total; vote progress while a window is open.
         String season = Component.translatable("eden.season.chronicle",
-                data.seasonIndex(), data.contractsDone(), data.contractsTotal()).getString();
+                Component.translatable(data.seasonTitleKey()),
+                data.contractsDone(), data.contractsTotal()).getString();
         graphics.centeredText(this.font, season, cx, y, 0xFF9AD8FF);
         y += 12;
         if (data.voteActive()) {

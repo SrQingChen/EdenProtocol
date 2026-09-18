@@ -240,7 +240,8 @@ public class EdenCommands {
     private static int seasonStatus(CommandContext<CommandSourceStack> ctx) {
         var data = com.srqingchen.eden.data.CampaignData.get(ctx.getSource().getServer());
         ctx.getSource().sendSuccess(() -> EdenMessages.styled(Type.INFO, "eden.season.cmd.status",
-                data.seasonIndex(), data.contractsDone().size()), false);
+                Component.translatable(com.srqingchen.eden.season.Seasons.current(
+                        ctx.getSource().getServer()).titleKey()), data.contractsDone().size()), false);
         for (var c : com.srqingchen.eden.season.SeasonSystem.currentContracts(ctx.getSource().getServer())) {
             boolean done = data.isContractDone(c.id());
             ctx.getSource().sendSystemMessage(Component.literal(

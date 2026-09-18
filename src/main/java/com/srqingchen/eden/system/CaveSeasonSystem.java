@@ -1,7 +1,6 @@
 package com.srqingchen.eden.system;
 
 import com.srqingchen.eden.attachment.RaidState;
-import com.srqingchen.eden.data.CampaignData;
 import com.srqingchen.eden.dimension.EdenDimensions;
 import com.srqingchen.eden.registry.EdenAttachments;
 import com.srqingchen.eden.util.EdenMessages;
@@ -29,7 +28,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +36,7 @@ import java.util.Map;
 
 /**
  * S1 矿洞季修饰层 (batch B) - a pure modifier package on top of the raid worlds, active while
- * {@code CampaignData.seasonIndex() == 1} and never touching world generation:
+ * S0 矿洞季 is the active season, per the season registry) and never touching world generation:
  * <ul>
  *   <li><b>刷怪倾向</b> - underground hostiles spawn more often (bonus dark-spot spawns near
  *   y&lt;0 players) and sometimes arrive as cave stock (spider→cave spider, zombie→husk); the
@@ -95,18 +93,15 @@ public final class CaveSeasonSystem {
 
     private static final Map<ResourceKey<Level>, Collapse> collapses = new HashMap<>();
 
-    /** Is the cave-season modifier package live right now? */
+    /** Is the cave-season modifier package live right now? (S0 is the active season.) */
     public static boolean active(MinecraftServer server) {
-        return CampaignData.get(server).seasonIndex() == 1;
+        return com.srqingchen.eden.season.Seasons.isCurrent(server, com.srqingchen.eden.season.S0CaveSeason.ID);
     }
 
-    // ---------- wiring (see EdenProtocol ctor) ----------
+    // ---------- wiring: called by the S0CaveSeason definition hooks (via SeasonHooks) ----------
 
-    public static void onServerTick(ServerTickEvent.Post event) {
-        MinecraftServer server = event.getServer();
-        if (!active(server)) {
-            return;
-        }
+    /** Facade for {@link com.srqingchen.eden.season.SeasonDefinition#serverTick}. */
+    public static void tick(MinecraftServer server) {
         for (ResourceKey<Level> key : RAID_DIMS) {
             ServerLevel raid = server.getLevel(key);
             if (raid == null || raid.players().isEmpty()) {
@@ -119,15 +114,15 @@ public final class CaveSeasonSystem {
         }
     }
 
-    public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
+    /** Facade for {@link com.srqingchen.eden.season.SeasonDefinition#entityJoinLevel}. */
+    public static void joinLevel(EntityJoinLevelEvent event) {
         if (event.isCanceled() || !(event.getEntity() instanceof Mob mob)) {
             return;
         }
         if (!(event.getLevel() instanceof ServerLevel level) || !isRaidLevel(level)) {
             return;
         }
-        MinecraftServer server = level.getServer();
-        if (server == null || !active(server) || mob.getBlockY() >= 0 || mob.entityTags().contains(TAG_SWAPPED)) {
+        if (mob.getBlockY() >= 0 || mob.entityTags().contains(TAG_SWAPPED)) {
             return;
         }
         // 幽暗菌毯: every underground monster tracks the crew from further out (applied at join so
@@ -161,14 +156,14 @@ public final class CaveSeasonSystem {
         level.addFreshEntity(swap);
     }
 
-    public static void onBlockBreak(BreakBlockEvent event) {
+    /** Facade for {@link com.srqingchen.eden.season.SeasonDefinition#blockBreak}. */
+    public static void blockBroken(BreakBlockEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer sp)
                 || !(sp.level() instanceof ServerLevel level) || !isRaidLevel(level)) {
             return;
         }
-        MinecraftServer server = level.getServer();
         BlockPos pos = event.getPos();
-        if (server == null || !active(server) || sp.getBlockY() >= 0) {
+        if (sp.getBlockY() >= 0) {
             return;
         }
         BlockState state = event.getState();

@@ -156,12 +156,14 @@ public class EdenProtocol {
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.LootInjectionSystem::onServerStarted);
         // S1 矿洞季 modifier package (batch B): underground spawn pressure + cave stock swaps, the
         // collapse event, and the two mechanical cave affixes (幽暗菌毯 / 矿脉共鸣).
-        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onServerTick);
-        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onEntityJoinLevel);
-        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.CaveSeasonSystem::onBlockBreak);
-        // S1 批C 剧情层: fragment pools in structure chests + glow-berry/deepslate seams for 铭.
+        // 批 D: season behaviour now routes through the season registry — S0's definition carries
+        // the cave modifiers and fragment seams; season add-on mods register their own definitions.
+        com.srqingchen.eden.season.Seasons.register(new com.srqingchen.eden.season.S0CaveSeason());
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonHooks::onServerTick);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonHooks::onEntityJoinLevel);
+        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.season.SeasonHooks::onBlockBreak);
+        // Fragment pools are injected at loot-table load (fires for every table, any season).
         NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FragmentSystem::onLootTableLoad);
-        NeoForge.EVENT_BUS.addListener(com.srqingchen.eden.system.FragmentSystem::onBlockBreak);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, EdenConfig.SPEC);
         modContainer.registerConfig(ModConfig.Type.CLIENT, EdenClientConfig.SPEC);
