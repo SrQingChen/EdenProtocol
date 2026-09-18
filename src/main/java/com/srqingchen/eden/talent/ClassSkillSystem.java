@@ -8,7 +8,7 @@ import com.srqingchen.eden.registry.EdenAttachments;
 import com.srqingchen.eden.util.EdenMessages;
 import com.srqingchen.eden.util.EdenMessages.Type;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
+import net.minecraft.core.Holder;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
@@ -195,28 +195,31 @@ public final class ClassSkillSystem {
         ServerLevel level = sp.level();
         MinecraftServer server = level.getServer();
         if (server == null) return false;
-        Registry<LootTable> reg = server.registryAccess().lookupOrThrow(Registries.LOOT_TABLE);
-        List<LootTable> chests = new ArrayList<>();
-        reg.stream().forEach(lt -> {
-            if (lt == null || lt == LootTable.EMPTY) return;
-            Identifier id = lt.getLootTableId();
-            if (lt.getParamSet() == LootContextParamSets.CHEST || (id != null && id.getPath().startsWith("chests/"))) {
-                chests.add(lt);
-            }
-        });
+        // Chest tables live in the RELOADABLE registry layer - enumerate through the reloadable-registries
+        // holder (server.registryAccess() does not carry loot tables and used to throw here).
+        List<Holder.Reference<LootTable>> chests = new ArrayList<>();
+        server.reloadableRegistries().lookup()
+                .lookupOrThrow(Registries.LOOT_TABLE)
+                .listElements().forEach(ref -> {
+                    LootTable lt = ref.value();
+                    if (lt == null || lt == LootTable.EMPTY) return;
+                    Identifier id = ref.key().identifier();
+                    if (lt.getParamSet() == LootContextParamSets.CHEST || id.getPath().startsWith("chests/")) {
+                        chests.add(ref);
+                    }
+                });
         if (chests.isEmpty()) {
             EdenMessages.overlay(sp, Type.INFO, "eden.skill.discover.none");
             return false;                                   // no chest tables: don't burn the cooldown
         }
-        LootTable chosen = chests.get(sp.getRandom().nextInt(chests.size()));
+        Holder.Reference<LootTable> chosen = chests.get(sp.getRandom().nextInt(chests.size()));
         LootParams params = new LootParams.Builder(level)
                 .withParameter(LootContextParams.ORIGIN, sp.position())
                 .withOptionalParameter(LootContextParams.THIS_ENTITY, sp)
                 .withLuck(sp.getLuck())
                 .create(LootContextParamSets.CHEST);
-        List<ItemStack> items = chosen.getRandomItems(params);
-        Identifier cid = chosen.getLootTableId();
-        String name = cid != null ? cid.getPath() : "?";
+        List<ItemStack> items = chosen.value().getRandomItems(params);
+        String name = chosen.key().identifier().getPath();
         if (items.isEmpty()) {
             EdenMessages.overlay(sp, Type.INFO, "eden.skill.discover.empty", name);
             return true;

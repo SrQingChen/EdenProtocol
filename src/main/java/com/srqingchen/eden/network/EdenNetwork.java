@@ -359,15 +359,21 @@ public class EdenNetwork {
             java.util.List<Integer> states = new ArrayList<>();
             java.util.List<String> hints = new ArrayList<>();
             java.util.List<LootPayloadBlock> blocks = new ArrayList<>();
-            var reg = server.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.LOOT_TABLE);
-            for (net.minecraft.world.level.storage.loot.LootTable table : reg) {
+            // Loot tables live in the RELOADABLE registry layer, which only the reloadable-registries
+            // holder exposes - server.registryAccess() stops at the DIMENSIONS layer and its
+            // lookupOrThrow(LOOT_TABLE) throws, which is why the loot button did nothing (0.3.4).
+            java.util.List<net.minecraft.core.Holder.Reference<net.minecraft.world.level.storage.loot.LootTable>> tables =
+                    new ArrayList<>();
+            server.reloadableRegistries().lookup()
+                    .lookupOrThrow(net.minecraft.core.registries.Registries.LOOT_TABLE)
+                    .listElements().forEach(tables::add);
+            tables.sort(java.util.Comparator.comparing(t -> t.key().identifier().toString()));
+            for (var ref : tables) {
+                net.minecraft.world.level.storage.loot.LootTable table = ref.value();
                 if (table == net.minecraft.world.level.storage.loot.LootTable.EMPTY) {
                     continue;
                 }
-                net.minecraft.resources.Identifier id = table.getLootTableId();
-                if (id == null) {
-                    continue;
-                }
+                net.minecraft.resources.Identifier id = ref.key().identifier();
                 boolean chest = table.getParamSet() == net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST
                         || id.getPath().startsWith("chests/");
                 if (!chest) {
