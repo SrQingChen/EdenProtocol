@@ -335,6 +335,12 @@ public class CampaignData extends SavedData {
         return this.seasonId;
     }
 
+    /** Admin override of the display index (see /eden season set); id routing goes through the registry. */
+    public void setSeasonIndex(int index) {
+        this.seasonIndex = Math.max(1, index);
+        setDirty();
+    }
+
     public void setSeasonId(String id) {
         if (!this.seasonId.equals(id)) {
             this.seasonId = id;

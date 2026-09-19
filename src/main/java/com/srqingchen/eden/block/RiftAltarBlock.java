@@ -15,12 +15,12 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.network.chat.Component;
 
 /**
- * 裂隙祭坛 (rift altar, 功能清单 §8 v2): the ark's card-forge. Right-click opens the
- * vanilla-style {@link RiftAltarMenu} through the standard {@link MenuProvider} flow (per user
- * feedback the old code-drawn screen's clicks never landed; a real container menu gets click, drag,
- * shift-click and quick-craft for free). Fuse three same-quality cards into one of the next tier,
- * or feed a boss material + supply points to ascend a card's star level - all consumed and rolled
- * server-side inside the menu.
+ * 裂隙祭坛 (rift altar, 功能清单 §8 v2): the ark's card-forge. Right-click opens the PLAIN
+ * VANILLA double-chest menu (GENERIC_9x3) — no custom menu type, no custom screen, nothing to
+ * register on the client (two earlier UIs died on exactly that). All forging rules live in the
+ * server-side {@link RiftAltarMenu} slot overrides; the player gets a one-line how-to in chat on
+ * open. Fuse three same-quality cards into one of the next tier, or feed a boss material +
+ * supply points to ascend a card's star level.
  */
 public class RiftAltarBlock extends Block {
     public static final MapCodec<RiftAltarBlock> CODEC = simpleCodec(RiftAltarBlock::new);
@@ -43,6 +43,8 @@ public class RiftAltarBlock extends Block {
             sp.openMenu(new SimpleMenuProvider(
                     (id, inv, p) -> new RiftAltarMenu(id, inv),
                     Component.translatable("eden.forge.title")));
+            com.srqingchen.eden.util.EdenMessages.send(sp,
+                    com.srqingchen.eden.util.EdenMessages.Type.INFO, "eden.forge.howto");
         }
         return InteractionResult.SUCCESS;
     }

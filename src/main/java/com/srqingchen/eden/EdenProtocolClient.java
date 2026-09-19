@@ -70,11 +70,6 @@ public class EdenProtocolClient {
         // Client MOD bus: register the HUD layer.
         modEventBus.addListener(EdenProtocolClient::registerGuiLayers);
 
-        // Client MOD bus: container-menu screens. Without this the server's openMenu packet arrives,
-        // MenuScreens.create finds no factory for the menu type and only logs a warning - the player
-        // right-clicks and nothing happens (playtest feedback 0.3.4: the rift altar never opened).
-        modEventBus.addListener(EdenProtocolClient::registerMenuScreens);
-
         // Client MOD bus: custom particle providers (§16 sprites).
         modEventBus.addListener(EdenProtocolClient::registerParticles);
 
@@ -96,12 +91,6 @@ public class EdenProtocolClient {
 
         // Client game bus: poll the class-skill key and forward presses to the server.
         NeoForge.EVENT_BUS.addListener(EdenKeyMappings::onClientTick);
-    }
-
-    private static void registerMenuScreens(net.neoforged.neoforge.client.event.RegisterMenuScreensEvent event) {
-        // The rift altar card forge: real MenuType + AbstractContainerScreen pair.
-        event.register(com.srqingchen.eden.registry.EdenMenus.RIFT_ALTAR.get(),
-                com.srqingchen.eden.client.gui.RiftAltarScreen::new);
     }
 
     private static void registerGuiLayers(RegisterGuiLayersEvent event) {

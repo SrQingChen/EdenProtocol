@@ -880,5 +880,8 @@
   "eden.finale.charred_page": "Page 18 lies before everyone: charred, unreadable. Only the triangle rune still glows, faintly.",
   "eden.finale.completed": "Season finale complete: the purification condition is met, server pollution is zero, and the paradise gate has descended.",
   "eden.finale.rerun_hint": "The chronicle wall can open a re-run vote: the same season from the top; endings and meta progression stay banked.",
-  "eden.chronicle.entry.finale": "The final battle: the Deep's Silhouette slain"
+  "eden.chronicle.entry.finale": "The final battle: the Deep's Silhouette slain",
+  "eden.forge.howto": "§7Rift altar: row 1, slots 1-3 take three same-quality PURE cards -> collect the fuse result in slot 4; slot 5 card + slot 6 ecology-boss material -> collect the ascended card in slot 7 (25 supply points, 5-star cap). Staged inputs return on close.",
+  "eden.season.cmd.set": "Season switched: %s (season progress reset, meta stays)",
+  "eden.season.cmd.done": "Marked %s contract(s) done (now %s)."
 }

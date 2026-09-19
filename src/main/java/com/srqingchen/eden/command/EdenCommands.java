@@ -54,6 +54,14 @@ public class EdenCommands {
                 .then(Commands.literal("status").executes(EdenCommands::status))
                 .then(Commands.literal("season").executes(EdenCommands::seasonStatus)
                         .then(Commands.literal("advance").requires(EDEN_ADMIN).executes(EdenCommands::seasonAdvance))
+                        .then(Commands.literal("set").requires(EDEN_ADMIN)
+                                .then(Commands.argument("index", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> seasonSet(ctx, IntegerArgumentType.getInteger(ctx, "index")))))
+                        .then(Commands.literal("done").requires(EDEN_ADMIN)
+                                .then(Commands.argument("id", StringArgumentType.word())
+                                        .executes(ctx -> seasonDone(ctx, StringArgumentType.getString(ctx, "id")))))
+                        .then(Commands.literal("gate").requires(EDEN_ADMIN).executes(EdenCommands::seasonGate))
+                        .then(Commands.literal("rerun").requires(EDEN_ADMIN).executes(EdenCommands::seasonRerun))
                         .then(Commands.literal("contract").requires(EDEN_ADMIN)
                                 .then(Commands.argument("id", StringArgumentType.word())
                                         .executes(ctx -> seasonContract(ctx, StringArgumentType.getString(ctx, "id"))))))
@@ -256,6 +264,56 @@ public class EdenCommands {
             return 0;
         }
         com.srqingchen.eden.season.SeasonSystem.advanceSeason(ctx.getSource().getServer());
+        return 1;
+    }
+
+    /** Admin: jump the active season to the n-th registered one (1 = S0), season progress resets. */
+    private static int seasonSet(CommandContext<CommandSourceStack> ctx, int index) {
+        var all = com.srqingchen.eden.season.Seasons.all();
+        if (index < 1 || index > all.size()) {
+            ctx.getSource().sendFailure(Component.literal("season index 1-" + all.size()));
+            return 0;
+        }
+        var def = all.get(index - 1);
+        var data = com.srqingchen.eden.data.CampaignData.get(ctx.getSource().getServer());
+        data.setSeasonIndex(index);
+        data.setSeasonId(def.id().toString());
+        data.resetSeasonCycle();
+        ctx.getSource().sendSuccess(() -> EdenMessages.styled(Type.INFO, "eden.season.cmd.set",
+                Component.translatable(def.titleKey())), false);
+        return 1;
+    }
+
+    /** Admin/testing: mark one contract (or "all") done, feeding the 3/5 advance gate. */
+    private static int seasonDone(CommandContext<CommandSourceStack> ctx, String id) {
+        var server = ctx.getSource().getServer();
+        var data = com.srqingchen.eden.data.CampaignData.get(server);
+        int marked = 0;
+        for (var c : com.srqingchen.eden.season.SeasonSystem.currentContracts(server)) {
+            if ("all".equals(id) || c.id().equals(id)) {
+                data.markContractDone(c.id());
+                marked++;
+            }
+        }
+        if (marked == 0) {
+            ctx.getSource().sendFailure(Component.literal("unknown contract: " + id));
+            return 0;
+        }
+        final int n = marked;
+        ctx.getSource().sendSuccess(() -> EdenMessages.styled(Type.SUCCESS, "eden.season.cmd.done",
+                n, data.contractsDone().size()), false);
+        return 1;
+    }
+
+    /** Admin/testing: force the finale gate open NOW and gather everyone online. */
+    private static int seasonGate(CommandContext<CommandSourceStack> ctx) {
+        com.srqingchen.eden.system.FinaleSystem.onVotePassed(ctx.getSource().getServer());
+        return 1;
+    }
+
+    /** Admin/testing: force the multi-playthrough re-run of the current season. */
+    private static int seasonRerun(CommandContext<CommandSourceStack> ctx) {
+        com.srqingchen.eden.season.SeasonSystem.rerunSeason(ctx.getSource().getServer());
         return 1;
     }
 
